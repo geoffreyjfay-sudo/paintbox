@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paintbox</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <h1>Paintbox</h1>
+    <p class="subtitle">Digitize your watercolour palette</p>
+  </header>
+
+  <main>
+
+    <!-- Step 1: Upload swatch photo -->
+    <section id="upload-section">
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="file-input" accept="image/*" hidden />
+        <div class="upload-prompt" id="upload-prompt">
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Upload your swatch photo</p>
+          <span>Click or drag an image here</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2: Sample colours from photo -->
+    <section id="sample-section" class="hidden">
+      <div class="sample-layout">
+
+        <div class="canvas-wrapper">
+          <p class="instruction">Click a swatch on the photo to sample its colour</p>
+          <canvas id="swatch-canvas"></canvas>
+        </div>
+
+        <div class="sidebar">
+
+          <!-- Colour preview + naming -->
+          <div class="colour-picker-panel" id="colour-picker-panel">
+            <div class="colour-preview" id="colour-preview"></div>
+            <div class="colour-hex" id="colour-hex">—</div>
+            <input type="text" id="colour-name" placeholder="Name this colour…" maxlength="40" disabled />
+            <button id="add-btn" disabled>Add to palette</button>
+          </div>
+
+          <!-- Palette being built -->
+          <div class="palette-panel">
+            <div class="palette-header">
+              <span>Your palette</span>
+              <span class="palette-count" id="palette-count">0 / 24</span>
+            </div>
+            <div class="palette-grid" id="palette-grid"></div>
+            <button id="save-btn" class="save-btn hidden">Save palette</button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast notification -->
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

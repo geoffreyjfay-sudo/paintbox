@@ -352,6 +352,150 @@ main {
   cursor: not-allowed;
 }
 
+/* ── Palette view ───────────────────────────────────────────────────────────── */
+
+.palette-view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.col-options {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.col-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.col-btn {
+  padding: 5px 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.col-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.col-btn.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.add-colours-btn {
+  padding: 7px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.add-colours-btn:hover {
+  background: var(--accent-hover);
+}
+
+.palette-view-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.view-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: grab;
+  user-select: none;
+}
+
+.view-cell.empty {
+  cursor: default;
+}
+
+.view-cell.dragging {
+  opacity: 0.35;
+}
+
+.view-cell.drag-over .view-swatch {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.view-cell.drag-over.empty {
+  outline: 2px dashed var(--accent);
+  border-radius: var(--radius);
+}
+
+.view-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.08);
+  position: relative;
+  transition: transform 0.1s;
+}
+
+.view-cell:not(.empty):hover .view-swatch {
+  transform: scale(1.04);
+}
+
+.view-remove-btn {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 17px;
+  height: 17px;
+  background: var(--danger);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 11px;
+  line-height: 17px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  padding: 0;
+}
+
+.view-cell:hover .view-remove-btn {
+  opacity: 1;
+}
+
+.view-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.3;
+  word-break: break-word;
+  width: 100%;
+}
+
+.view-cell.empty .view-swatch {
+  background: var(--bg);
+  border: 1px dashed var(--border);
+}
+
 /* ── Upload ─────────────────────────────────────────────────────────────────── */
 
 .upload-area {

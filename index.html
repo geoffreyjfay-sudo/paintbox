@@ -25,9 +25,7 @@
       <div class="home-actions">
         <button class="new-palette-btn" id="new-palette-btn">+ New palette</button>
       </div>
-      <div class="palette-list" id="palette-list">
-        <!-- Palette cards injected here -->
-      </div>
+      <div class="palette-list" id="palette-list"></div>
       <p class="empty-state hidden" id="empty-state">No palettes yet. Create your first one.</p>
     </section>
 
@@ -39,7 +37,7 @@
         <label for="palette-name-input">Name</label>
         <input type="text" id="palette-name-input" placeholder="e.g. Daniel Smith Travel Set" maxlength="60" />
         <label>Size</label>
-        <div class="size-options" id="size-options">
+        <div class="size-options">
           <button class="size-btn" data-size="8">8</button>
           <button class="size-btn" data-size="16">16</button>
           <button class="size-btn selected" data-size="24">24</button>
@@ -50,7 +48,21 @@
       </div>
     </section>
 
-    <!-- Step 1: Upload swatch photo -->
+    <!-- Palette view: arrange swatches -->
+    <section id="palette-view-section" class="hidden">
+      <div class="palette-view-toolbar">
+        <div class="col-options">
+          <span class="col-label">Columns</span>
+          <button class="col-btn" data-cols="6">6</button>
+          <button class="col-btn selected" data-cols="8">8</button>
+          <button class="col-btn" data-cols="12">12</button>
+        </div>
+        <button class="add-colours-btn" id="add-colours-btn">+ Add colours</button>
+      </div>
+      <div class="palette-view-grid" id="palette-view-grid"></div>
+    </section>
+
+    <!-- Upload swatch photo -->
     <section id="upload-section" class="hidden">
       <div class="upload-area" id="upload-area">
         <input type="file" id="file-input" accept="image/*" hidden />
@@ -62,7 +74,7 @@
       </div>
     </section>
 
-    <!-- Step 2: Sample colours from photo -->
+    <!-- Sample colours from photo -->
     <section id="sample-section" class="hidden">
       <div class="sample-layout">
 
@@ -72,8 +84,6 @@
         </div>
 
         <div class="sidebar">
-
-          <!-- Colour preview + naming -->
           <div class="colour-picker-panel">
             <div class="colour-preview" id="colour-preview"></div>
             <div class="colour-hex" id="colour-hex">—</div>
@@ -81,7 +91,6 @@
             <button id="add-btn" disabled>Add to palette</button>
           </div>
 
-          <!-- Palette being built -->
           <div class="palette-panel">
             <div class="palette-header">
               <span id="palette-title">Palette</span>
@@ -90,14 +99,13 @@
             <div class="palette-grid" id="palette-grid"></div>
             <button id="done-btn" class="done-btn hidden">Done</button>
           </div>
-
         </div>
+
       </div>
     </section>
 
   </main>
 
-  <!-- Toast notification -->
   <div class="toast hidden" id="toast"></div>
 
   <script src="app.js"></script>

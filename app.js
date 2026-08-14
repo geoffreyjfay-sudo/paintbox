@@ -6,18 +6,22 @@
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let palettes       = loadPalettes();   // all saved palettes
-let activePalette  = null;             // palette being built/edited
-let selectedSize   = 24;              // chosen slot count for new palette
-let pendingColour  = null;            // { hex, r, g, b } sampled, not yet named
-let copySource     = null;            // palette being copied from, if any
+let palettes      = loadPalettes();
+let activePalette = null;
+let selectedSize  = 24;
+let pendingColour = null;
+let copySource    = null;
+let colCount      = 8;   // columns in palette view
+let dragSrcIndex  = null; // index of swatch being dragged
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
-const homeSection      = document.getElementById('home-section');
-const setupSection     = document.getElementById('setup-section');
-const uploadSection    = document.getElementById('upload-section');
-const sampleSection    = document.getElementById('sample-section');
+const homeSection        = document.getElementById('home-section');
+const setupSection       = document.getElementById('setup-section');
+const paletteViewSection = document.getElementById('palette-view-section');
+const uploadSection      = document.getElementById('upload-section');
+const sampleSection      = document.getElementById('sample-section');
+
 const backBtn          = document.getElementById('back-btn');
 const headerSubtitle   = document.getElementById('header-subtitle');
 
@@ -25,11 +29,15 @@ const newPaletteBtn    = document.getElementById('new-palette-btn');
 const paletteListEl    = document.getElementById('palette-list');
 const emptyState       = document.getElementById('empty-state');
 
+const setupTitle       = document.getElementById('setup-title');
+const copyNotice       = document.getElementById('copy-notice');
 const paletteNameInput = document.getElementById('palette-name-input');
 const sizeBtns         = document.querySelectorAll('.size-btn');
 const createBtn        = document.getElementById('create-btn');
-const setupTitle       = document.getElementById('setup-title');
-const copyNotice       = document.getElementById('copy-notice');
+
+const paletteViewGrid  = document.getElementById('palette-view-grid');
+const colBtns          = document.querySelectorAll('.col-btn');
+const addColoursBtn    = document.getElementById('add-colours-btn');
 
 const uploadArea       = document.getElementById('upload-area');
 const fileInput        = document.getElementById('file-input');
@@ -48,39 +56,62 @@ const toast            = document.getElementById('toast');
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 
+const SECTIONS = [
+  'home-section', 'setup-section', 'palette-view-section',
+  'upload-section', 'sample-section'
+];
+
 function showSection(id) {
-  [homeSection, setupSection, uploadSection, sampleSection].forEach((s) =>
-    s.classList.add('hidden')
-  );
+  SECTIONS.forEach((s) => document.getElementById(s).classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 
   const onHome = id === 'home-section';
   backBtn.classList.toggle('hidden', onHome);
-  headerSubtitle.textContent = onHome
-    ? 'Your watercolour palettes'
-    : activePalette?.name ?? 'New palette';
+
+  if (onHome) {
+    headerSubtitle.textContent = 'Your watercolour palettes';
+  } else if (id === 'setup-section') {
+    headerSubtitle.textContent = copySource ? 'Copy palette' : 'New palette';
+  } else {
+    headerSubtitle.textContent = activePalette?.name ?? '';
+  }
 }
 
 backBtn.addEventListener('click', () => {
+  const current = SECTIONS.find((s) => !document.getElementById(s).classList.contains('hidden'));
+  if (current === 'upload-section' || current === 'sample-section') {
+    // Return to palette view if we have an active palette, else home
+    if (activePalette) {
+      renderPaletteView();
+      showSection('palette-view-section');
+    } else {
+      goHome();
+    }
+  } else {
+    goHome();
+  }
+});
+
+function goHome() {
   activePalette = null;
   pendingColour = null;
-  showSection('home-section');
+  copySource = null;
   renderHomeScreen();
-});
+  showSection('home-section');
+}
 
 // ── Home screen ───────────────────────────────────────────────────────────────
 
 function renderHomeScreen() {
   paletteListEl.innerHTML = '';
-  const hasPalettes = palettes.length > 0;
-  emptyState.classList.toggle('hidden', hasPalettes);
+  emptyState.classList.toggle('hidden', palettes.length > 0);
 
   palettes.forEach((p) => {
     const card = document.createElement('div');
     card.className = 'palette-card';
     card.addEventListener('click', () => openPalette(p.id));
 
-    // Mini swatch preview — show up to 16 slots
+    // Mini swatch preview — up to 16 slots
     const swatchGrid = document.createElement('div');
     swatchGrid.className = 'palette-card-swatches';
     const previewCount = Math.min(p.maxSlots, 16);
@@ -91,12 +122,13 @@ function renderHomeScreen() {
       swatchGrid.appendChild(s);
     }
 
+    // Name row with pencil
     const nameRow = document.createElement('div');
     nameRow.className = 'palette-card-name-row';
 
-    const name = document.createElement('div');
-    name.className = 'palette-card-name';
-    name.textContent = p.name;
+    const nameEl = document.createElement('div');
+    nameEl.className = 'palette-card-name';
+    nameEl.textContent = p.name;
 
     const editBtn = document.createElement('button');
     editBtn.className = 'palette-card-edit';
@@ -104,12 +136,13 @@ function renderHomeScreen() {
     editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
     editBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      startRename(p, name, editBtn);
+      startRename(p, nameEl, editBtn);
     });
 
-    nameRow.appendChild(name);
+    nameRow.appendChild(nameEl);
     nameRow.appendChild(editBtn);
 
+    // Meta row
     const meta = document.createElement('div');
     meta.className = 'palette-card-meta';
     meta.innerHTML = `<span>${p.colours.length} / ${p.maxSlots} colours</span>`;
@@ -120,18 +153,12 @@ function renderHomeScreen() {
     const copy = document.createElement('button');
     copy.className = 'palette-card-copy';
     copy.textContent = 'Copy';
-    copy.addEventListener('click', (e) => {
-      e.stopPropagation();
-      startCopy(p);
-    });
+    copy.addEventListener('click', (e) => { e.stopPropagation(); startCopy(p); });
 
     const del = document.createElement('button');
     del.className = 'palette-card-delete';
     del.textContent = 'Delete';
-    del.addEventListener('click', (e) => {
-      e.stopPropagation();
-      deletePalette(p.id);
-    });
+    del.addEventListener('click', (e) => { e.stopPropagation(); deletePalette(p.id); });
 
     actions.appendChild(copy);
     actions.appendChild(del);
@@ -150,7 +177,6 @@ function startRename(p, nameEl, editBtn) {
   input.value = p.name;
   input.className = 'palette-card-rename-input';
   input.maxLength = 60;
-
   nameEl.replaceWith(input);
   editBtn.classList.add('hidden');
   input.focus();
@@ -158,16 +184,12 @@ function startRename(p, nameEl, editBtn) {
 
   function commit() {
     const trimmed = input.value.trim();
-    if (trimmed && trimmed !== p.name) {
-      p.name = trimmed;
-      savePalettes();
-    }
+    if (trimmed && trimmed !== p.name) { p.name = trimmed; savePalettes(); }
     renderHomeScreen();
   }
-
   input.addEventListener('blur', commit);
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
     if (e.key === 'Escape') { input.value = p.name; input.blur(); }
   });
 }
@@ -175,8 +197,8 @@ function startRename(p, nameEl, editBtn) {
 function openPalette(id) {
   activePalette = palettes.find((p) => p.id === id);
   if (!activePalette) return;
-  renderPaletteGrid();
-  showSection('upload-section');
+  renderPaletteView();
+  showSection('palette-view-section');
 }
 
 function deletePalette(id) {
@@ -185,7 +207,7 @@ function deletePalette(id) {
   renderHomeScreen();
 }
 
-// ── New palette setup ─────────────────────────────────────────────────────────
+// ── New / copy palette setup ──────────────────────────────────────────────────
 
 const SIZE_OPTIONS = [8, 16, 24, 32, 48];
 
@@ -197,7 +219,6 @@ function openSetup({ source = null } = {}) {
     copyNotice.textContent = `Copying ${source.colours.length} colour${source.colours.length !== 1 ? 's' : ''} from "${source.name}"`;
     copyNotice.classList.remove('hidden');
     paletteNameInput.value = `${source.name} (copy)`;
-    // Default to next size up that fits; fall back to same size
     const minSize = source.colours.length;
     const nextSize = SIZE_OPTIONS.find((s) => s > source.maxSlots && s >= minSize)
       || SIZE_OPTIONS.find((s) => s >= minSize)
@@ -212,8 +233,7 @@ function openSetup({ source = null } = {}) {
 
   sizeBtns.forEach((btn) => {
     const size = Number(btn.dataset.size);
-    const tooSmall = source && size < source.colours.length;
-    btn.disabled = tooSmall;
+    btn.disabled = source ? size < source.colours.length : false;
     btn.classList.toggle('selected', size === selectedSize);
   });
 
@@ -223,9 +243,7 @@ function openSetup({ source = null } = {}) {
 
 newPaletteBtn.addEventListener('click', () => openSetup());
 
-function startCopy(source) {
-  openSetup({ source });
-}
+function startCopy(source) { openSetup({ source }); }
 
 paletteNameInput.addEventListener('input', () => {
   createBtn.disabled = paletteNameInput.value.trim() === '';
@@ -243,45 +261,121 @@ createBtn.addEventListener('click', () => {
   const name = paletteNameInput.value.trim();
   if (!name) return;
 
-  // Deep-copy colours from source if copying, giving each a fresh id
   const seedColours = copySource
     ? copySource.colours.map((c) => ({ ...c, id: Date.now() + Math.random() }))
     : [];
 
-  activePalette = {
-    id:       Date.now(),
-    name,
-    maxSlots: selectedSize,
-    colours:  seedColours,
-  };
+  activePalette = { id: Date.now(), name, maxSlots: selectedSize, colours: seedColours };
   palettes.push(activePalette);
   savePalettes();
   copySource = null;
 
-  renderPaletteGrid();
   showSection('upload-section');
 });
+
+// ── Palette view (arrange) ────────────────────────────────────────────────────
+
+colBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    colCount = Number(btn.dataset.cols);
+    colBtns.forEach((b) => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    renderPaletteView();
+  });
+});
+
+addColoursBtn.addEventListener('click', () => showSection('upload-section'));
+
+function renderPaletteView() {
+  paletteViewGrid.innerHTML = '';
+  paletteViewGrid.style.gridTemplateColumns = `repeat(${colCount}, 1fr)`;
+
+  const { colours, maxSlots } = activePalette;
+
+  for (let i = 0; i < maxSlots; i++) {
+    const colour = colours[i];
+    const cell = document.createElement('div');
+    cell.className = 'view-cell' + (colour ? '' : ' empty');
+    cell.dataset.index = i;
+
+    if (colour) {
+      cell.draggable = true;
+
+      const swatch = document.createElement('div');
+      swatch.className = 'view-swatch';
+      swatch.style.background = colour.hex;
+
+      // Remove button
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'view-remove-btn';
+      removeBtn.textContent = '×';
+      removeBtn.title = `Remove ${colour.name}`;
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activePalette.colours.splice(i, 1);
+        savePalettes();
+        renderPaletteView();
+      });
+      swatch.appendChild(removeBtn);
+
+      const label = document.createElement('div');
+      label.className = 'view-label';
+      label.textContent = colour.name;
+
+      cell.appendChild(swatch);
+      cell.appendChild(label);
+
+      // Drag and drop
+      cell.addEventListener('dragstart', (e) => {
+        dragSrcIndex = i;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => cell.classList.add('dragging'), 0);
+      });
+      cell.addEventListener('dragend', () => {
+        cell.classList.remove('dragging');
+        document.querySelectorAll('.view-cell').forEach((c) => c.classList.remove('drag-over'));
+      });
+    }
+
+    // Drop targets on all filled cells and empty slots
+    cell.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.view-cell').forEach((c) => c.classList.remove('drag-over'));
+      cell.classList.add('drag-over');
+    });
+
+    cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+
+    cell.addEventListener('drop', (e) => {
+      e.preventDefault();
+      cell.classList.remove('drag-over');
+      const destIndex = Number(cell.dataset.index);
+      if (dragSrcIndex === null || dragSrcIndex === destIndex) return;
+
+      // Move colour from src to dest position
+      const moved = activePalette.colours.splice(dragSrcIndex, 1)[0];
+      activePalette.colours.splice(destIndex, 0, moved);
+      dragSrcIndex = null;
+      savePalettes();
+      renderPaletteView();
+    });
+
+    paletteViewGrid.appendChild(cell);
+  }
+}
 
 // ── Upload ────────────────────────────────────────────────────────────────────
 
 uploadArea.addEventListener('click', () => fileInput.click());
-
-uploadArea.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  uploadArea.classList.add('drag-over');
-});
-
-uploadArea.addEventListener('dragleave', () => {
-  uploadArea.classList.remove('drag-over');
-});
-
+uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
 uploadArea.addEventListener('drop', (e) => {
   e.preventDefault();
   uploadArea.classList.remove('drag-over');
   const file = e.dataTransfer.files[0];
   if (file && file.type.startsWith('image/')) loadImage(file);
 });
-
 fileInput.addEventListener('change', () => {
   if (fileInput.files[0]) loadImage(fileInput.files[0]);
   fileInput.value = '';
@@ -297,9 +391,8 @@ function loadImage(file) {
       canvas.width  = img.naturalWidth  * scale;
       canvas.height = img.naturalHeight * scale;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
       resetColourPicker();
-      renderPaletteGrid();
+      renderSamplePaletteGrid();
       showSection('sample-section');
     };
     img.src = e.target.result;
@@ -322,19 +415,13 @@ canvas.addEventListener('click', (e) => {
   const y = Math.round((e.clientY - rect.top)  * scaleY);
 
   const r2 = 4;
-  const sx = Math.max(0, x - r2);
-  const sy = Math.max(0, y - r2);
-  const sw = Math.min(r2 * 2, canvas.width  - sx);
-  const sh = Math.min(r2 * 2, canvas.height - sy);
+  const sx = Math.max(0, x - r2), sy = Math.max(0, y - r2);
+  const sw = Math.min(r2 * 2, canvas.width - sx), sh = Math.min(r2 * 2, canvas.height - sy);
   const data = ctx.getImageData(sx, sy, sw, sh).data;
 
   let r = 0, g = 0, b = 0, count = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    r += data[i]; g += data[i + 1]; b += data[i + 2]; count++;
-  }
-  r = Math.round(r / count);
-  g = Math.round(g / count);
-  b = Math.round(b / count);
+  for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i+1]; b += data[i+2]; count++; }
+  r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
 
   pendingColour = { hex: rgbToHex(r, g, b), r, g, b };
   colourPreview.style.background = pendingColour.hex;
@@ -348,9 +435,7 @@ canvas.addEventListener('click', (e) => {
 // ── Naming + adding ───────────────────────────────────────────────────────────
 
 colourNameInput.addEventListener('input', updateAddBtn);
-colourNameInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') addToPalette();
-});
+colourNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addToPalette(); });
 addBtn.addEventListener('click', addToPalette);
 
 function updateAddBtn() {
@@ -363,20 +448,14 @@ function addToPalette() {
     showToast(`Palette full (${activePalette.maxSlots} colours)`);
     return;
   }
-
   const entry = {
-    id:   Date.now(),
-    name: colourNameInput.value.trim(),
-    hex:  pendingColour.hex,
-    r:    pendingColour.r,
-    g:    pendingColour.g,
-    b:    pendingColour.b,
+    id: Date.now(), name: colourNameInput.value.trim(),
+    hex: pendingColour.hex, r: pendingColour.r, g: pendingColour.g, b: pendingColour.b,
   };
-
   activePalette.colours.push(entry);
   pendingColour = null;
   resetColourPicker();
-  renderPaletteGrid();
+  renderSamplePaletteGrid();
   savePalettes();
   showToast(`"${entry.name}" added`);
 }
@@ -389,12 +468,10 @@ function resetColourPicker() {
   updateAddBtn();
 }
 
-// ── Palette grid ──────────────────────────────────────────────────────────────
-
-function renderPaletteGrid() {
+// Mini palette grid in the sample sidebar
+function renderSamplePaletteGrid() {
   paletteGrid.innerHTML = '';
   const { colours, maxSlots, name } = activePalette;
-
   paletteTitle.textContent = name;
   paletteCount.textContent = `${colours.length} / ${maxSlots}`;
 
@@ -410,11 +487,10 @@ function renderPaletteGrid() {
     const removeBtn = document.createElement('button');
     removeBtn.className = 'remove-btn';
     removeBtn.textContent = '×';
-    removeBtn.title = `Remove ${entry.name}`;
     removeBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       activePalette.colours = activePalette.colours.filter((c) => c.id !== entry.id);
-      renderPaletteGrid();
+      renderSamplePaletteGrid();
       savePalettes();
     });
 
@@ -428,9 +504,8 @@ function renderPaletteGrid() {
 
 doneBtn.addEventListener('click', () => {
   savePalettes();
-  showToast('Palette saved');
-  showSection('home-section');
-  renderHomeScreen();
+  renderPaletteView();
+  showSection('palette-view-section');
 });
 
 // ── Persist ───────────────────────────────────────────────────────────────────
@@ -441,7 +516,6 @@ function savePalettes() {
 
 function loadPalettes() {
   try {
-    // Migrate old single-palette format
     const old = localStorage.getItem('paintbox_palette');
     if (old) {
       const colours = JSON.parse(old);
@@ -454,9 +528,7 @@ function loadPalettes() {
       localStorage.removeItem('paintbox_palette');
     }
     return JSON.parse(localStorage.getItem('paintbox_palettes')) || [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────

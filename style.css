@@ -24,10 +24,18 @@ body {
   min-height: 100vh;
 }
 
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+
 header {
-  padding: 24px 32px 16px;
+  padding: 20px 32px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 header h1 {
@@ -42,13 +50,231 @@ header .subtitle {
   margin-top: 2px;
 }
 
+.back-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.back-btn:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
 main {
   padding: 32px;
   max-width: 1100px;
   margin: 0 auto;
 }
 
-/* Upload */
+/* ── Home screen ────────────────────────────────────────────────────────────── */
+
+.home-actions {
+  margin-bottom: 24px;
+}
+
+.new-palette-btn {
+  padding: 9px 18px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.new-palette-btn:hover {
+  background: var(--accent-hover);
+}
+
+.palette-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.palette-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.palette-card:hover {
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  border-color: var(--accent);
+}
+
+.palette-card-swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  margin-bottom: 12px;
+}
+
+.palette-card-swatch {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.palette-card-swatch.empty {
+  background: var(--bg);
+  border: 1px dashed var(--border);
+}
+
+.palette-card-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.palette-card-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.palette-card-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.palette-card-delete:hover {
+  color: var(--danger);
+}
+
+.empty-state {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 48px 0;
+  text-align: center;
+}
+
+/* ── New palette setup ──────────────────────────────────────────────────────── */
+
+.setup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  max-width: 440px;
+  box-shadow: var(--shadow);
+}
+
+.setup-card h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.setup-card label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.setup-card label + label {
+  margin-top: 20px;
+}
+
+#palette-name-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#palette-name-input:focus {
+  border-color: var(--accent);
+}
+
+.size-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.size-btn {
+  padding: 7px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.size-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.size-btn.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+#create-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#create-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+#create-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Upload ─────────────────────────────────────────────────────────────────── */
 
 .upload-area {
   border: 2px dashed var(--border);
@@ -82,7 +308,7 @@ main {
   color: var(--text-muted);
 }
 
-/* Sample layout */
+/* ── Sample layout ──────────────────────────────────────────────────────────── */
 
 .sample-layout {
   display: grid;
@@ -113,7 +339,7 @@ main {
   cursor: crosshair;
 }
 
-/* Sidebar */
+/* ── Sidebar ────────────────────────────────────────────────────────────────── */
 
 .sidebar {
   display: flex;
@@ -192,7 +418,7 @@ main {
   cursor: not-allowed;
 }
 
-/* Palette panel */
+/* ── Palette panel ──────────────────────────────────────────────────────────── */
 
 .palette-header {
   display: flex;
@@ -272,7 +498,7 @@ main {
   opacity: 1;
 }
 
-.save-btn {
+.done-btn {
   width: 100%;
   margin-top: 14px;
   padding: 9px;
@@ -286,11 +512,11 @@ main {
   transition: background 0.15s;
 }
 
-.save-btn:hover {
+.done-btn:hover {
   background: #444;
 }
 
-/* Toast */
+/* ── Toast ──────────────────────────────────────────────────────────────────── */
 
 .toast {
   position: fixed;
@@ -306,7 +532,7 @@ main {
   transition: opacity 0.3s;
 }
 
-/* Utilities */
+/* ── Utilities ──────────────────────────────────────────────────────────────── */
 
 .hidden {
   display: none !important;

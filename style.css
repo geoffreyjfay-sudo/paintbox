@@ -523,30 +523,44 @@ main {
 
 .simplify-group {
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.simplify-range {
+.simplify-levels {
   display: flex;
-  align-items: center;
-  gap: 5px;
+  gap: 2px;
 }
 
-.range-label {
-  font-size: 0.7rem;
+.level-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: 0.75rem;
+  font-family: inherit;
   color: var(--text-muted);
-  white-space: nowrap;
-}
-
-#simplify-slider {
-  width: 90px;
-  accent-color: #6b5b8a;
   cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
 }
 
-#simplify-slider:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.level-btn.selected {
+  background: #6b5b8a;
+  border-color: #6b5b8a;
+  color: white;
+}
+
+/* Greyed out when Simplify is not the active filter */
+.simplify-levels.inactive .level-btn {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
+.simplify-levels:not(.inactive) .level-btn:hover:not(.selected) {
+  border-color: #6b5b8a;
+  color: #6b5b8a;
 }
 
 #mix-canvas {

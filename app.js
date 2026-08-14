@@ -417,6 +417,7 @@ function openMixSection() {
   mixSampledPreview.style.background = '';
   mixPrompt.textContent = 'Sample a colour from your photo';
 
+  simplifyLevels.classList.toggle('inactive', activeFilter !== 'simplify');
   if (referenceImgSrc) {
     showReferenceImage(referenceImgSrc);
   } else {
@@ -446,8 +447,9 @@ changePhotoBtn.addEventListener('click', () => {
   referenceImgSrc   = null;
   originalImageData = null;
   activeFilter      = 'original';
-  simplifySlider.value = 3;
-  simplifyRange.classList.add('hidden');
+  simplifyLevel = 3;
+  levelBtns.forEach((b) => b.classList.toggle('selected', b.dataset.level === '3'));
+  simplifyLevels.classList.add('inactive');
   document.querySelectorAll('.filter-btn').forEach((b) => b.classList.toggle('active', b.dataset.filter === 'original'));
   mixCanvasWrapper.classList.add('hidden');
   mixUploadArea.classList.remove('hidden');
@@ -485,21 +487,28 @@ function showReferenceImage(src) {
 
 // ── Photo filters ─────────────────────────────────────────────────────────────
 
-const simplifyRange  = document.getElementById('simplify-range');
-const simplifySlider = document.getElementById('simplify-slider');
+const simplifyLevels = document.getElementById('simplify-levels');
+const levelBtns      = document.querySelectorAll('.level-btn');
+let   simplifyLevel  = 3;
 
 document.querySelectorAll('.filter-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     activeFilter = btn.dataset.filter;
     document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
-    simplifyRange.classList.toggle('hidden', activeFilter !== 'simplify');
+    simplifyLevels.classList.toggle('inactive', activeFilter !== 'simplify');
     applyFilter(activeFilter);
   });
 });
 
-simplifySlider.addEventListener('input', () => {
-  if (activeFilter === 'simplify') applyFilter('simplify');
+levelBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (activeFilter !== 'simplify') return;
+    simplifyLevel = parseInt(btn.dataset.level, 10);
+    levelBtns.forEach((b) => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    applyFilter('simplify');
+  });
 });
 
 function applyFilter(name) {
@@ -569,9 +578,8 @@ function applyBilateral() {
   const simplifyBtn = document.querySelector('[data-filter="simplify"]');
   simplifyBtn.textContent = 'Working…';
   simplifyBtn.disabled = true;
-  simplifySlider.disabled = true;
 
-  const level = parseInt(simplifySlider.value, 10) - 1;
+  const level = simplifyLevel - 1;
   const { sigmaS, sigmaR } = SIMPLIFY_LEVELS[level];
 
   // Defer so the button label re-renders before the heavy loop starts
@@ -602,7 +610,6 @@ function applyBilateral() {
 
     simplifyBtn.textContent = 'Simplify';
     simplifyBtn.disabled = false;
-    simplifySlider.disabled = false;
   }, 20);
 }
 

@@ -494,10 +494,16 @@ document.querySelectorAll('.filter-btn').forEach((btn) => {
 
 function applyFilter(name) {
   if (!originalImageData) return;
-  // Always start from original pixels
-  const src = originalImageData.data;
+
+  // Bilateral filter is async — handle separately
+  if (name === 'simplify') {
+    applyBilateral();
+    return;
+  }
+
+  // All other filters are synchronous
   const out = new ImageData(
-    new Uint8ClampedArray(src),
+    new Uint8ClampedArray(originalImageData.data),
     originalImageData.width,
     originalImageData.height
   );
@@ -517,19 +523,6 @@ function applyFilter(name) {
       d[i+2] = clamp((d[i+2] - 128) * factor + 128);
     }
 
-  } else if (name === 'simplify') {
-    // Blur first so channel values in the same region converge before
-    // quantization — prevents channels at different step boundaries from
-    // snapping to wildly different levels and producing false colours.
-    const blurred = separableBoxBlur(d, out.width, out.height, 8);
-    const levels = 5;
-    const step = 255 / (levels - 1);
-    for (let i = 0; i < blurred.length; i += 4) {
-      d[i]   = Math.round(Math.round(blurred[i]   / step) * step);
-      d[i+1] = Math.round(Math.round(blurred[i+1] / step) * step);
-      d[i+2] = Math.round(Math.round(blurred[i+2] / step) * step);
-    }
-
   } else if (name === 'shadows' || name === 'midtones' || name === 'highlights') {
     for (let i = 0; i < d.length; i += 4) {
       const lum = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
@@ -539,7 +532,6 @@ function applyFilter(name) {
         (name === 'highlights' && lum > 175)
       );
       if (!inZone) {
-        // Desaturate and push toward mid-grey so the active zone stands out
         d[i] = d[i+1] = d[i+2] = Math.round(lum * 0.4 + 128 * 0.6);
       }
     }
@@ -548,47 +540,87 @@ function applyFilter(name) {
   mixCtx.putImageData(out, 0, 0);
 }
 
-function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
+// ── Bilateral filter (edge-preserving) ───────────────────────────────────────
+//
+//  Weights each neighbour by spatial distance AND colour similarity, so
+//  pixels across an edge contribute almost nothing — regions flatten without
+//  blurring across boundaries.  Run at reduced resolution for speed.
 
-// Two-pass (horizontal then vertical) box blur — fast O(w*h*r) instead of O(w*h*r²)
-function separableBoxBlur(data, width, height, radius) {
-  const tmp = new Float32Array(data.length);
-  const out = new Uint8ClampedArray(data.length);
+function applyBilateral() {
+  const simplifyBtn = document.querySelector('[data-filter="simplify"]');
+  simplifyBtn.textContent = 'Working…';
+  simplifyBtn.disabled = true;
 
-  // Horizontal pass
+  // Defer so the button label re-renders before the heavy loop starts
+  setTimeout(() => {
+    const MAX_W = 380;
+    const scale = Math.min(1, MAX_W / originalImageData.width);
+    const w = Math.round(originalImageData.width  * scale);
+    const h = Math.round(originalImageData.height * scale);
+
+    // Draw original into a small offscreen canvas
+    const src = document.createElement('canvas');
+    src.width = originalImageData.width;
+    src.height = originalImageData.height;
+    src.getContext('2d').putImageData(originalImageData, 0, 0);
+
+    const small = document.createElement('canvas');
+    small.width = w; small.height = h;
+    const sCtx = small.getContext('2d', { willReadFrequently: true });
+    sCtx.drawImage(src, 0, 0, w, h);
+    const pixels = sCtx.getImageData(0, 0, w, h);
+
+    // Bilateral filter
+    const filtered = bilateralFilter(pixels.data, w, h, 12, 40);
+
+    // Write filtered result back to small canvas, scale up to display canvas
+    sCtx.putImageData(new ImageData(filtered, w, h), 0, 0);
+    mixCtx.drawImage(small, 0, 0, mixCanvas.width, mixCanvas.height);
+
+    simplifyBtn.textContent = 'Simplify';
+    simplifyBtn.disabled = false;
+  }, 20);
+}
+
+function bilateralFilter(data, width, height, sigmaS, sigmaR) {
+  const out    = new Uint8ClampedArray(data.length);
+  const radius = Math.ceil(sigmaS * 1.5);
+  const inv2S  = 1 / (2 * sigmaS * sigmaS);
+  const inv2R  = 1 / (2 * sigmaR * sigmaR);
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      let r = 0, g = 0, b = 0;
-      const x0 = Math.max(0, x - radius);
-      const x1 = Math.min(width - 1, x + radius);
-      const count = x1 - x0 + 1;
-      for (let sx = x0; sx <= x1; sx++) {
-        const i = (y * width + sx) * 4;
-        r += data[i]; g += data[i+1]; b += data[i+2];
-      }
-      const i = (y * width + x) * 4;
-      tmp[i] = r / count; tmp[i+1] = g / count; tmp[i+2] = b / count; tmp[i+3] = data[i+3];
-    }
-  }
+      const ci = (y * width + x) * 4;
+      const cr = data[ci], cg = data[ci+1], cb = data[ci+2];
 
-  // Vertical pass
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
-      let r = 0, g = 0, b = 0;
-      const y0 = Math.max(0, y - radius);
-      const y1 = Math.min(height - 1, y + radius);
-      const count = y1 - y0 + 1;
+      let sumR = 0, sumG = 0, sumB = 0, sumW = 0;
+
+      const x0 = Math.max(0, x - radius), x1 = Math.min(width  - 1, x + radius);
+      const y0 = Math.max(0, y - radius), y1 = Math.min(height - 1, y + radius);
+
       for (let sy = y0; sy <= y1; sy++) {
-        const i = (sy * width + x) * 4;
-        r += tmp[i]; g += tmp[i+1]; b += tmp[i+2];
+        for (let sx = x0; sx <= x1; sx++) {
+          const si = (sy * width + sx) * 4;
+          const sr = data[si], sg = data[si+1], sb = data[si+2];
+
+          const spatialD2 = (x - sx) * (x - sx) + (y - sy) * (y - sy);
+          const colorD2   = (cr - sr) * (cr - sr) + (cg - sg) * (cg - sg) + (cb - sb) * (cb - sb);
+          const w = Math.exp(-spatialD2 * inv2S - colorD2 * inv2R);
+
+          sumR += sr * w; sumG += sg * w; sumB += sb * w; sumW += w;
+        }
       }
-      const i = (y * width + x) * 4;
-      out[i] = r / count; out[i+1] = g / count; out[i+2] = b / count; out[i+3] = data[i+3];
+
+      out[ci]   = sumR / sumW;
+      out[ci+1] = sumG / sumW;
+      out[ci+2] = sumB / sumW;
+      out[ci+3] = data[ci+3];
     }
   }
-
   return out;
 }
+
+function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
 
 // Eyedropper
 let currentSuggestion = null;

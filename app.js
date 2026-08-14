@@ -10,6 +10,7 @@ let palettes       = loadPalettes();   // all saved palettes
 let activePalette  = null;             // palette being built/edited
 let selectedSize   = 24;              // chosen slot count for new palette
 let pendingColour  = null;            // { hex, r, g, b } sampled, not yet named
+let copySource     = null;            // palette being copied from, if any
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,8 @@ const emptyState       = document.getElementById('empty-state');
 const paletteNameInput = document.getElementById('palette-name-input');
 const sizeBtns         = document.querySelectorAll('.size-btn');
 const createBtn        = document.getElementById('create-btn');
+const setupTitle       = document.getElementById('setup-title');
+const copyNotice       = document.getElementById('copy-notice');
 
 const uploadArea       = document.getElementById('upload-area');
 const fileInput        = document.getElementById('file-input');
@@ -96,6 +99,17 @@ function renderHomeScreen() {
     meta.className = 'palette-card-meta';
     meta.innerHTML = `<span>${p.colours.length} / ${p.maxSlots} colours</span>`;
 
+    const actions = document.createElement('div');
+    actions.className = 'palette-card-actions';
+
+    const copy = document.createElement('button');
+    copy.className = 'palette-card-copy';
+    copy.textContent = 'Copy';
+    copy.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startCopy(p);
+    });
+
     const del = document.createElement('button');
     del.className = 'palette-card-delete';
     del.textContent = 'Delete';
@@ -103,7 +117,10 @@ function renderHomeScreen() {
       e.stopPropagation();
       deletePalette(p.id);
     });
-    meta.appendChild(del);
+
+    actions.appendChild(copy);
+    actions.appendChild(del);
+    meta.appendChild(actions);
 
     card.appendChild(swatchGrid);
     card.appendChild(name);
@@ -127,15 +144,45 @@ function deletePalette(id) {
 
 // ── New palette setup ─────────────────────────────────────────────────────────
 
-newPaletteBtn.addEventListener('click', () => {
-  paletteNameInput.value = '';
-  selectedSize = 24;
-  sizeBtns.forEach((b) => {
-    b.classList.toggle('selected', Number(b.dataset.size) === selectedSize);
+const SIZE_OPTIONS = [8, 16, 24, 32, 48];
+
+function openSetup({ source = null } = {}) {
+  copySource = source;
+
+  if (source) {
+    setupTitle.textContent = 'Copy palette';
+    copyNotice.textContent = `Copying ${source.colours.length} colour${source.colours.length !== 1 ? 's' : ''} from "${source.name}"`;
+    copyNotice.classList.remove('hidden');
+    paletteNameInput.value = `${source.name} (copy)`;
+    // Default to next size up that fits; fall back to same size
+    const minSize = source.colours.length;
+    const nextSize = SIZE_OPTIONS.find((s) => s > source.maxSlots && s >= minSize)
+      || SIZE_OPTIONS.find((s) => s >= minSize)
+      || source.maxSlots;
+    selectedSize = nextSize;
+  } else {
+    setupTitle.textContent = 'New palette';
+    copyNotice.classList.add('hidden');
+    paletteNameInput.value = '';
+    selectedSize = 24;
+  }
+
+  sizeBtns.forEach((btn) => {
+    const size = Number(btn.dataset.size);
+    const tooSmall = source && size < source.colours.length;
+    btn.disabled = tooSmall;
+    btn.classList.toggle('selected', size === selectedSize);
   });
-  createBtn.disabled = true;
+
+  createBtn.disabled = paletteNameInput.value.trim() === '';
   showSection('setup-section');
-});
+}
+
+newPaletteBtn.addEventListener('click', () => openSetup());
+
+function startCopy(source) {
+  openSetup({ source });
+}
 
 paletteNameInput.addEventListener('input', () => {
   createBtn.disabled = paletteNameInput.value.trim() === '';
@@ -153,15 +200,22 @@ createBtn.addEventListener('click', () => {
   const name = paletteNameInput.value.trim();
   if (!name) return;
 
+  // Deep-copy colours from source if copying, giving each a fresh id
+  const seedColours = copySource
+    ? copySource.colours.map((c) => ({ ...c, id: Date.now() + Math.random() }))
+    : [];
+
   activePalette = {
     id:       Date.now(),
     name,
     maxSlots: selectedSize,
-    colours:  [],
+    colours:  seedColours,
   };
   palettes.push(activePalette);
   savePalettes();
+  copySource = null;
 
+  renderPaletteGrid();
   showSection('upload-section');
 });
 

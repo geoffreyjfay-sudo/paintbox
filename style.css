@@ -152,15 +152,34 @@ main {
   align-items: center;
 }
 
+.palette-card-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.palette-card-copy,
 .palette-card-delete {
   background: none;
   border: none;
-  color: var(--text-muted);
   cursor: pointer;
   font-size: 0.78rem;
   padding: 0;
   line-height: 1;
   transition: color 0.15s;
+  font-family: inherit;
+}
+
+.palette-card-copy {
+  color: var(--accent);
+}
+
+.palette-card-copy:hover {
+  color: var(--accent-hover);
+}
+
+.palette-card-delete {
+  color: var(--text-muted);
 }
 
 .palette-card-delete:hover {
@@ -250,6 +269,22 @@ main {
   background: var(--accent);
   border-color: var(--accent);
   color: white;
+}
+
+.size-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.copy-notice {
+  font-size: 0.82rem;
+  color: var(--accent);
+  background: #f0f7f5;
+  border: 1px solid #c8e0db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 20px;
 }
 
 #create-btn {

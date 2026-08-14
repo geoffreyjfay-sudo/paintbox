@@ -91,9 +91,24 @@ function renderHomeScreen() {
       swatchGrid.appendChild(s);
     }
 
+    const nameRow = document.createElement('div');
+    nameRow.className = 'palette-card-name-row';
+
     const name = document.createElement('div');
     name.className = 'palette-card-name';
     name.textContent = p.name;
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'palette-card-edit';
+    editBtn.title = 'Rename palette';
+    editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startRename(p, name, editBtn);
+    });
+
+    nameRow.appendChild(name);
+    nameRow.appendChild(editBtn);
 
     const meta = document.createElement('div');
     meta.className = 'palette-card-meta';
@@ -123,9 +138,37 @@ function renderHomeScreen() {
     meta.appendChild(actions);
 
     card.appendChild(swatchGrid);
-    card.appendChild(name);
+    card.appendChild(nameRow);
     card.appendChild(meta);
     paletteListEl.appendChild(card);
+  });
+}
+
+function startRename(p, nameEl, editBtn) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = p.name;
+  input.className = 'palette-card-rename-input';
+  input.maxLength = 60;
+
+  nameEl.replaceWith(input);
+  editBtn.classList.add('hidden');
+  input.focus();
+  input.select();
+
+  function commit() {
+    const trimmed = input.value.trim();
+    if (trimmed && trimmed !== p.name) {
+      p.name = trimmed;
+      savePalettes();
+    }
+    renderHomeScreen();
+  }
+
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = p.name; input.blur(); }
   });
 }
 

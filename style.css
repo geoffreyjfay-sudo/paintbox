@@ -135,13 +135,56 @@ main {
   border: 1px dashed var(--border);
 }
 
+.palette-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  min-width: 0;
+}
+
 .palette-card-name {
   font-size: 0.9rem;
   font-weight: 500;
-  margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.palette-card-edit {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.palette-card:hover .palette-card-edit {
+  opacity: 1;
+}
+
+.palette-card-edit:hover {
+  color: var(--accent);
+}
+
+.palette-card-rename-input {
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  width: 100%;
+  padding: 0;
+  margin-bottom: 4px;
 }
 
 .palette-card-meta {

@@ -667,15 +667,27 @@ mixCanvas.addEventListener('click', (e) => {
   const sx = Math.max(0, x - r2), sy = Math.max(0, y - r2);
   const sw = Math.min(r2 * 2, mixCanvas.width - sx);
   const sh = Math.min(r2 * 2, mixCanvas.height - sy);
-  const data = mixCtx.getImageData(sx, sy, sw, sh).data;
+
+  let pixelData;
+  try {
+    pixelData = mixCtx.getImageData(sx, sy, sw, sh).data;
+  } catch {
+    showToast('Open via GitHub Pages for eyedropper to work (Safari file:// restriction)');
+    return;
+  }
 
   let r = 0, g = 0, b = 0, count = 0;
-  for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i+1]; b += data[i+2]; count++; }
+  for (let i = 0; i < pixelData.length; i += 4) { r += pixelData[i]; g += pixelData[i+1]; b += pixelData[i+2]; count++; }
   r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
 
   const hex = '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
   mixSampledPreview.style.background = hex;
   mixPrompt.textContent = hex.toUpperCase();
+
+  if (filledCount(activePalette) === 0) {
+    showToast('Add colours to your palette first');
+    return;
+  }
 
   const result = suggestMix(r, g, b, activePalette.colours);
   if (!result) return;

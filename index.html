@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Paintbox</title>
-  <link rel="stylesheet" href="style.css?v=2" />
+  <link rel="stylesheet" href="style.css?v=3" />
 </head>
 <body>
 
@@ -24,6 +24,7 @@
     <section id="home-section">
       <div class="home-actions">
         <button class="new-palette-btn" id="new-palette-btn">+ New palette</button>
+        <button class="preset-browse-btn" id="preset-browse-btn">Starter sets</button>
         <label class="import-btn" id="import-label">
           Import palette
           <input type="file" id="import-input" accept=".json" hidden />
@@ -31,6 +32,14 @@
       </div>
       <div class="palette-list" id="palette-list"></div>
       <p class="empty-state hidden" id="empty-state">No palettes yet. Create your first one.</p>
+    </section>
+
+    <!-- Preset browser -->
+    <section id="preset-section" class="hidden">
+      <div class="preset-intro">
+        <p>Choose a starter palette based on a manufacturer set. Colours are approximate — refine them by sampling your actual paints.</p>
+      </div>
+      <div class="preset-grid" id="preset-grid"></div>
     </section>
 
     <!-- New palette setup: name + size -->
@@ -187,6 +196,6 @@
 
   <div class="toast hidden" id="toast"></div>
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

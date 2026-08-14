@@ -77,6 +77,90 @@ function suggestMix(targetR, targetG, targetB, paletteColours) {
   return bestResult;
 }
 
+// ── Manufacturer presets ──────────────────────────────────────────────────────
+//
+//  Approximate swatch colours for popular boxed sets.
+//  RGB values represent the pigment on white paper under neutral light.
+
+const PRESETS = [
+  {
+    brand: 'Winsor & Newton',
+    name: 'Cotman 12 Sketchers Pocket Box',
+    maxSlots: 12,
+    colours: [
+      { name: 'Alizarin Crimson',    hex: '#8c2040', r: 140, g: 32,  b: 64  },
+      { name: 'Burnt Sienna',        hex: '#8b3a1e', r: 139, g: 58,  b: 30  },
+      { name: 'Burnt Umber',         hex: '#4e2a1a', r: 78,  g: 42,  b: 26  },
+      { name: 'Cadmium Yellow Hue',  hex: '#f5c800', r: 245, g: 200, b: 0   },
+      { name: 'Chinese White',       hex: '#f0ede6', r: 240, g: 237, b: 230 },
+      { name: 'French Ultramarine',  hex: '#2a3d96', r: 42,  g: 61,  b: 150 },
+      { name: 'Ivory Black',         hex: '#282828', r: 40,  g: 40,  b: 40  },
+      { name: 'Lemon Yellow Hue',    hex: '#eee84a', r: 238, g: 232, b: 74  },
+      { name: 'Sap Green',           hex: '#4a7030', r: 74,  g: 112, b: 48  },
+      { name: 'Viridian Hue',        hex: '#2e7060', r: 46,  g: 112, b: 96  },
+      { name: 'Yellow Ochre',        hex: '#c8963a', r: 200, g: 150, b: 58  },
+      { name: 'Cadmium Red Hue',     hex: '#cc2e20', r: 204, g: 46,  b: 32  },
+    ],
+  },
+  {
+    brand: 'Winsor & Newton',
+    name: 'Professional Watercolour 12',
+    maxSlots: 12,
+    colours: [
+      { name: 'Lemon Yellow',        hex: '#f0e640', r: 240, g: 230, b: 64  },
+      { name: 'Cadmium Yellow',      hex: '#f4c000', r: 244, g: 192, b: 0   },
+      { name: 'Cadmium Orange',      hex: '#e86820', r: 232, g: 104, b: 32  },
+      { name: 'Cadmium Red',         hex: '#cc2a20', r: 204, g: 42,  b: 32  },
+      { name: 'Alizarin Crimson',    hex: '#8c1e3c', r: 140, g: 30,  b: 60  },
+      { name: 'French Ultramarine',  hex: '#2a3e98', r: 42,  g: 62,  b: 152 },
+      { name: 'Cerulean Blue',       hex: '#5a9ec0', r: 90,  g: 158, b: 192 },
+      { name: 'Viridian',            hex: '#2a7260', r: 42,  g: 114, b: 96  },
+      { name: 'Sap Green',           hex: '#486e2c', r: 72,  g: 110, b: 44  },
+      { name: 'Yellow Ochre',        hex: '#c89038', r: 200, g: 144, b: 56  },
+      { name: 'Burnt Sienna',        hex: '#8a3820', r: 138, g: 56,  b: 32  },
+      { name: 'Burnt Umber',         hex: '#4c281a', r: 76,  g: 40,  b: 26  },
+    ],
+  },
+  {
+    brand: 'Daniel Smith',
+    name: '12 Essentials Half Pan Set',
+    maxSlots: 12,
+    colours: [
+      { name: 'Hansa Yellow Light',       hex: '#f5e040', r: 245, g: 224, b: 64  },
+      { name: 'New Gamboge',              hex: '#e8a820', r: 232, g: 168, b: 32  },
+      { name: 'Pyrrol Red',               hex: '#c82424', r: 200, g: 36,  b: 36  },
+      { name: 'Quinacridone Rose',        hex: '#cc4070', r: 204, g: 64,  b: 112 },
+      { name: 'Dioxazine Purple',         hex: '#401860', r: 64,  g: 24,  b: 96  },
+      { name: 'Ultramarine Blue',         hex: '#2c3e9a', r: 44,  g: 62,  b: 154 },
+      { name: 'Phthalo Blue (GS)',        hex: '#0a3878', r: 10,  g: 56,  b: 120 },
+      { name: 'Phthalo Green (BS)',       hex: '#006858', r: 0,   g: 104, b: 88  },
+      { name: 'Sap Green',                hex: '#4a7030', r: 74,  g: 112, b: 48  },
+      { name: 'Burnt Sienna',             hex: '#8c3820', r: 140, g: 56,  b: 32  },
+      { name: 'Raw Umber',                hex: '#6a5038', r: 106, g: 80,  b: 56  },
+      { name: 'Perylene Black',           hex: '#1e1e22', r: 30,  g: 30,  b: 34  },
+    ],
+  },
+  {
+    brand: 'Schmincke',
+    name: 'Horadam 12 Half Pan Set',
+    maxSlots: 12,
+    colours: [
+      { name: 'Lemon Yellow',             hex: '#f4ec50', r: 244, g: 236, b: 80  },
+      { name: 'Cadmium Yellow Light',     hex: '#f8d000', r: 248, g: 208, b: 0   },
+      { name: 'Cadmium Red Light',        hex: '#d42820', r: 212, g: 40,  b: 32  },
+      { name: 'Madder Red',               hex: '#942040', r: 148, g: 32,  b: 64  },
+      { name: 'Ultramarine Finest',       hex: '#2830a0', r: 40,  g: 48,  b: 160 },
+      { name: 'Cobalt Blue Hue',          hex: '#4878b8', r: 72,  g: 120, b: 184 },
+      { name: 'Phthalo Blue',             hex: '#083070', r: 8,   g: 48,  b: 112 },
+      { name: 'Viridian',                 hex: '#2a7060', r: 42,  g: 112, b: 96  },
+      { name: 'Sap Green',                hex: '#486c28', r: 72,  g: 108, b: 40  },
+      { name: 'Yellow Ochre',             hex: '#c89040', r: 200, g: 144, b: 64  },
+      { name: 'Burnt Sienna',             hex: '#8c3a20', r: 140, g: 58,  b: 32  },
+      { name: 'Ivory Black',              hex: '#262626', r: 38,  g: 38,  b: 38  },
+    ],
+  },
+];
+
 // ── Storage schema ────────────────────────────────────────────────────────────
 //
 //  paintbox_palettes: [
@@ -110,9 +194,11 @@ const backBtn          = document.getElementById('back-btn');
 const headerSubtitle   = document.getElementById('header-subtitle');
 
 const newPaletteBtn    = document.getElementById('new-palette-btn');
+const presetBrowseBtn  = document.getElementById('preset-browse-btn');
 const paletteListEl    = document.getElementById('palette-list');
 const emptyState       = document.getElementById('empty-state');
 const importInput      = document.getElementById('import-input');
+const presetGrid       = document.getElementById('preset-grid');
 
 const setupTitle       = document.getElementById('setup-title');
 const copyNotice       = document.getElementById('copy-notice');
@@ -159,7 +245,7 @@ const toast            = document.getElementById('toast');
 // ── Navigation ────────────────────────────────────────────────────────────────
 
 const SECTIONS = [
-  'home-section', 'setup-section', 'palette-view-section',
+  'home-section', 'preset-section', 'setup-section', 'palette-view-section',
   'mix-section', 'upload-section', 'sample-section'
 ];
 
@@ -172,6 +258,8 @@ function showSection(id) {
 
   if (onHome) {
     headerSubtitle.textContent = 'Your watercolour palettes';
+  } else if (id === 'preset-section') {
+    headerSubtitle.textContent = 'Starter sets';
   } else if (id === 'setup-section') {
     headerSubtitle.textContent = copySource ? 'Copy palette' : 'New palette';
   } else if (id === 'mix-section') {
@@ -331,6 +419,76 @@ function deletePalette(id) {
   palettes = palettes.filter((p) => p.id !== id);
   savePalettes();
   renderHomeScreen();
+}
+
+// ── Preset browser ────────────────────────────────────────────────────────────
+
+presetBrowseBtn.addEventListener('click', () => {
+  renderPresets();
+  showSection('preset-section');
+});
+
+function renderPresets() {
+  presetGrid.innerHTML = '';
+  PRESETS.forEach((preset) => {
+    const card = document.createElement('div');
+    card.className = 'preset-card';
+
+    const brand = document.createElement('div');
+    brand.className = 'preset-brand';
+    brand.textContent = preset.brand;
+
+    const name = document.createElement('div');
+    name.className = 'preset-name';
+    name.textContent = preset.name;
+
+    // Mini swatch strip
+    const swatches = document.createElement('div');
+    swatches.className = 'preset-swatches';
+    preset.colours.forEach((c) => {
+      const s = document.createElement('div');
+      s.className = 'preset-swatch';
+      s.style.background = c.hex;
+      s.title = c.name;
+      swatches.appendChild(s);
+    });
+
+    // Colour list
+    const list = document.createElement('div');
+    list.className = 'preset-colour-list';
+    list.textContent = preset.colours.map((c) => c.name).join(' · ');
+
+    const loadBtn = document.createElement('button');
+    loadBtn.className = 'preset-load-btn';
+    loadBtn.textContent = 'Load this set';
+    loadBtn.addEventListener('click', () => loadPreset(preset));
+
+    card.appendChild(brand);
+    card.appendChild(name);
+    card.appendChild(swatches);
+    card.appendChild(list);
+    card.appendChild(loadBtn);
+    presetGrid.appendChild(card);
+  });
+}
+
+function loadPreset(preset) {
+  const colours = preset.colours.map((c) => ({ ...c, id: Date.now() + Math.random() }));
+  // Pad to maxSlots with nulls
+  while (colours.length < preset.maxSlots) colours.push(null);
+
+  const p = {
+    id:       Date.now(),
+    name:     preset.name,
+    maxSlots: preset.maxSlots,
+    colours,
+  };
+  palettes.push(p);
+  savePalettes();
+  activePalette = p;
+  renderPaletteView();
+  showSection('palette-view-section');
+  showToast(`"${p.name}" loaded — colours are approximate`);
 }
 
 // ── Export / Import ───────────────────────────────────────────────────────────

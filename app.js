@@ -446,6 +446,8 @@ changePhotoBtn.addEventListener('click', () => {
   referenceImgSrc   = null;
   originalImageData = null;
   activeFilter      = 'original';
+  simplifySlider.value = 3;
+  simplifyRange.classList.add('hidden');
   document.querySelectorAll('.filter-btn').forEach((b) => b.classList.toggle('active', b.dataset.filter === 'original'));
   mixCanvasWrapper.classList.add('hidden');
   mixUploadArea.classList.remove('hidden');
@@ -483,13 +485,21 @@ function showReferenceImage(src) {
 
 // ── Photo filters ─────────────────────────────────────────────────────────────
 
+const simplifyRange  = document.getElementById('simplify-range');
+const simplifySlider = document.getElementById('simplify-slider');
+
 document.querySelectorAll('.filter-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     activeFilter = btn.dataset.filter;
     document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
+    simplifyRange.classList.toggle('hidden', activeFilter !== 'simplify');
     applyFilter(activeFilter);
   });
+});
+
+simplifySlider.addEventListener('input', () => {
+  if (activeFilter === 'simplify') applyFilter('simplify');
 });
 
 function applyFilter(name) {
@@ -546,10 +556,23 @@ function applyFilter(name) {
 //  pixels across an edge contribute almost nothing — regions flatten without
 //  blurring across boundaries.  Run at reduced resolution for speed.
 
+// Slider value → bilateral parameters
+const SIMPLIFY_LEVELS = [
+  { sigmaS:  6, sigmaR: 18 },  // 1 — subtle
+  { sigmaS:  9, sigmaR: 28 },  // 2
+  { sigmaS: 12, sigmaR: 40 },  // 3 — default
+  { sigmaS: 16, sigmaR: 58 },  // 4
+  { sigmaS: 20, sigmaR: 80 },  // 5 — strong
+];
+
 function applyBilateral() {
   const simplifyBtn = document.querySelector('[data-filter="simplify"]');
   simplifyBtn.textContent = 'Working…';
   simplifyBtn.disabled = true;
+  simplifySlider.disabled = true;
+
+  const level = parseInt(simplifySlider.value, 10) - 1;
+  const { sigmaS, sigmaR } = SIMPLIFY_LEVELS[level];
 
   // Defer so the button label re-renders before the heavy loop starts
   setTimeout(() => {
@@ -571,7 +594,7 @@ function applyBilateral() {
     const pixels = sCtx.getImageData(0, 0, w, h);
 
     // Bilateral filter
-    const filtered = bilateralFilter(pixels.data, w, h, 12, 40);
+    const filtered = bilateralFilter(pixels.data, w, h, sigmaS, sigmaR);
 
     // Write filtered result back to small canvas, scale up to display canvas
     sCtx.putImageData(new ImageData(filtered, w, h), 0, 0);
@@ -579,6 +602,7 @@ function applyBilateral() {
 
     simplifyBtn.textContent = 'Simplify';
     simplifyBtn.disabled = false;
+    simplifySlider.disabled = false;
   }, 20);
 }
 

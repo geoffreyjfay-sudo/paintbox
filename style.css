@@ -521,6 +521,34 @@ main {
   color: white;
 }
 
+.simplify-group {
+  align-items: center;
+  gap: 8px;
+}
+
+.simplify-range {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.range-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+#simplify-slider {
+  width: 90px;
+  accent-color: #6b5b8a;
+  cursor: pointer;
+}
+
+#simplify-slider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 #mix-canvas {
   display: block;
   width: 100%;

@@ -8,13 +8,14 @@
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let palettes      = loadPalettes();
-let activePalette = null;
-let selectedSize  = 24;
-let pendingColour = null;
-let copySource    = null;
-let colCount      = 8;
-let dragSrcIndex  = null;
+let palettes         = loadPalettes();
+let activePalette    = null;
+let selectedSize     = 24;
+let pendingColour    = null;
+let copySource       = null;
+let colCount         = 8;
+let dragSrcIndex     = null;
+let referenceImgSrc  = null;  // dataURL of the reference photo (in-memory only)
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,23 @@ const createBtn        = document.getElementById('create-btn');
 const paletteViewGrid  = document.getElementById('palette-view-grid');
 const colBtns          = document.querySelectorAll('.col-btn');
 const addColoursBtn    = document.getElementById('add-colours-btn');
+const mixBtn           = document.getElementById('mix-btn');
+
+const mixSection          = document.getElementById('mix-section');
+const mixUploadArea       = document.getElementById('mix-upload-area');
+const mixFileInput        = document.getElementById('mix-file-input');
+const mixCanvasWrapper    = document.getElementById('mix-canvas-wrapper');
+const mixCanvas           = document.getElementById('mix-canvas');
+const mixCtx              = mixCanvas.getContext('2d', { willReadFrequently: true });
+const changePhotoBtn      = document.getElementById('change-photo-btn');
+const mixSampledPreview   = document.getElementById('mix-sampled-preview');
+const mixPrompt           = document.getElementById('mix-prompt');
+const mixSuggestionPanel  = document.getElementById('mix-suggestion-panel');
+const suggestionPreview   = document.getElementById('suggestion-preview');
+const suggestionParts     = document.getElementById('suggestion-parts');
+const suggestionDelta     = document.getElementById('suggestion-delta');
+const saveMixBtn          = document.getElementById('save-mix-btn');
+const mixSavedList        = document.getElementById('mix-saved-list');
 
 const uploadArea       = document.getElementById('upload-area');
 const fileInput        = document.getElementById('file-input');
@@ -60,7 +78,7 @@ const toast            = document.getElementById('toast');
 
 const SECTIONS = [
   'home-section', 'setup-section', 'palette-view-section',
-  'upload-section', 'sample-section'
+  'mix-section', 'upload-section', 'sample-section'
 ];
 
 function showSection(id) {
@@ -74,6 +92,8 @@ function showSection(id) {
     headerSubtitle.textContent = 'Your watercolour palettes';
   } else if (id === 'setup-section') {
     headerSubtitle.textContent = copySource ? 'Copy palette' : 'New palette';
+  } else if (id === 'mix-section') {
+    headerSubtitle.textContent = `Mix — ${activePalette?.name ?? ''}`;
   } else {
     headerSubtitle.textContent = activePalette?.name ?? '';
   }
@@ -81,7 +101,7 @@ function showSection(id) {
 
 backBtn.addEventListener('click', () => {
   const current = SECTIONS.find((s) => !document.getElementById(s).classList.contains('hidden'));
-  if (current === 'upload-section' || current === 'sample-section') {
+  if (current === 'upload-section' || current === 'sample-section' || current === 'mix-section') {
     if (activePalette) {
       renderPaletteView();
       showSection('palette-view-section');
@@ -380,6 +400,216 @@ function renderPaletteView() {
     cell.appendChild(pan);
     cell.appendChild(label);
     paletteViewGrid.appendChild(cell);
+  });
+}
+
+// ── Mix section ───────────────────────────────────────────────────────────────
+
+mixBtn.addEventListener('click', () => {
+  openMixSection();
+});
+
+function openMixSection() {
+  currentSuggestion = null;
+  mixSuggestionPanel.classList.add('hidden');
+  mixSampledPreview.style.background = '';
+  mixPrompt.textContent = 'Sample a colour from your photo';
+
+  if (referenceImgSrc) {
+    showReferenceImage(referenceImgSrc);
+  } else {
+    mixCanvasWrapper.classList.add('hidden');
+    mixUploadArea.classList.remove('hidden');
+  }
+
+  renderSavedMixes();
+  showSection('mix-section');
+}
+
+// Reference photo upload
+mixUploadArea.addEventListener('click', () => mixFileInput.click());
+mixUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); mixUploadArea.classList.add('drag-over'); });
+mixUploadArea.addEventListener('dragleave', () => mixUploadArea.classList.remove('drag-over'));
+mixUploadArea.addEventListener('drop', (e) => {
+  e.preventDefault();
+  mixUploadArea.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadReferenceImage(file);
+});
+mixFileInput.addEventListener('change', () => {
+  if (mixFileInput.files[0]) loadReferenceImage(mixFileInput.files[0]);
+  mixFileInput.value = '';
+});
+changePhotoBtn.addEventListener('click', () => {
+  referenceImgSrc = null;
+  mixCanvasWrapper.classList.add('hidden');
+  mixUploadArea.classList.remove('hidden');
+  mixSuggestionPanel.classList.add('hidden');
+  mixSampledPreview.style.background = '';
+  mixPrompt.textContent = 'Sample a colour from your photo';
+});
+
+function loadReferenceImage(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    referenceImgSrc = e.target.result;
+    showReferenceImage(referenceImgSrc);
+  };
+  reader.readAsDataURL(file);
+}
+
+function showReferenceImage(src) {
+  const img = new Image();
+  img.onload = () => {
+    const maxW = mixCanvasWrapper.clientWidth || 700;
+    const scale = Math.min(1, maxW / img.naturalWidth);
+    mixCanvas.width  = img.naturalWidth  * scale;
+    mixCanvas.height = img.naturalHeight * scale;
+    mixCtx.drawImage(img, 0, 0, mixCanvas.width, mixCanvas.height);
+    mixUploadArea.classList.add('hidden');
+    mixCanvasWrapper.classList.remove('hidden');
+  };
+  img.src = src;
+}
+
+// Eyedropper
+let currentSuggestion = null;
+
+mixCanvas.addEventListener('click', (e) => {
+  const rect   = mixCanvas.getBoundingClientRect();
+  const scaleX = mixCanvas.width  / rect.width;
+  const scaleY = mixCanvas.height / rect.height;
+  const x = Math.round((e.clientX - rect.left) * scaleX);
+  const y = Math.round((e.clientY - rect.top)  * scaleY);
+
+  const r2 = 3;
+  const sx = Math.max(0, x - r2), sy = Math.max(0, y - r2);
+  const sw = Math.min(r2 * 2, mixCanvas.width - sx);
+  const sh = Math.min(r2 * 2, mixCanvas.height - sy);
+  const data = mixCtx.getImageData(sx, sy, sw, sh).data;
+
+  let r = 0, g = 0, b = 0, count = 0;
+  for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i+1]; b += data[i+2]; count++; }
+  r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
+
+  const hex = '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+  mixSampledPreview.style.background = hex;
+  mixPrompt.textContent = hex.toUpperCase();
+
+  const result = suggestMix(r, g, b, activePalette.colours);
+  if (!result) return;
+
+  currentSuggestion = { targetHex: hex, ...result };
+  renderSuggestion(result);
+});
+
+function renderSuggestion(result) {
+  suggestionPreview.style.background = result.mixHex;
+
+  suggestionParts.innerHTML = '';
+  result.parts.forEach(({ colour, ratio }) => {
+    const row = document.createElement('div');
+    row.className = 'suggestion-part-row';
+
+    const dot = document.createElement('div');
+    dot.className = 'suggestion-dot';
+    dot.style.background = colour.hex;
+
+    const text = document.createElement('span');
+    text.textContent = result.parts.length > 1
+      ? `${colour.name} — ${ratio} part${ratio !== 1 ? 's' : ''}`
+      : colour.name;
+
+    row.appendChild(dot);
+    row.appendChild(text);
+    suggestionParts.appendChild(row);
+  });
+
+  // Quality indicator
+  const dE = result.deltaE;
+  const quality = dE < 5 ? 'Excellent match' : dE < 12 ? 'Good match' : dE < 20 ? 'Fair match' : 'Approximate';
+  suggestionDelta.textContent = `${quality} (ΔE ${dE.toFixed(1)})`;
+  suggestionDelta.className = 'suggestion-delta ' + (dE < 5 ? 'match-excellent' : dE < 12 ? 'match-good' : dE < 20 ? 'match-fair' : 'match-poor');
+
+  mixSuggestionPanel.classList.remove('hidden');
+}
+
+// Save mix
+saveMixBtn.addEventListener('click', () => {
+  if (!currentSuggestion) return;
+  if (!activePalette.savedMixes) activePalette.savedMixes = [];
+
+  const mix = {
+    id:        Date.now(),
+    targetHex: currentSuggestion.targetHex,
+    mixHex:    currentSuggestion.mixHex,
+    deltaE:    currentSuggestion.deltaE,
+    parts:     currentSuggestion.parts.map(({ colour, ratio }) => ({
+      name: colour.name, hex: colour.hex, ratio,
+    })),
+  };
+
+  activePalette.savedMixes.unshift(mix);
+  savePalettes();
+  renderSavedMixes();
+  showToast('Mix saved');
+  saveMixBtn.textContent = '♥ Saved';
+  setTimeout(() => { saveMixBtn.textContent = '♡ Save mix'; }, 1500);
+});
+
+function renderSavedMixes() {
+  mixSavedList.innerHTML = '';
+  const mixes = activePalette.savedMixes || [];
+
+  if (mixes.length === 0) {
+    mixSavedList.innerHTML = '<p class="mix-saved-empty">No saved mixes yet</p>';
+    return;
+  }
+
+  mixes.forEach((mix) => {
+    const row = document.createElement('div');
+    row.className = 'saved-mix-row';
+
+    const swatches = document.createElement('div');
+    swatches.className = 'saved-mix-swatches';
+
+    const target = document.createElement('div');
+    target.className = 'saved-mix-swatch target-swatch';
+    target.style.background = mix.targetHex;
+    target.title = 'Target colour';
+
+    const arrow = document.createElement('span');
+    arrow.className = 'saved-mix-arrow';
+    arrow.textContent = '→';
+
+    const result = document.createElement('div');
+    result.className = 'saved-mix-swatch';
+    result.style.background = mix.mixHex;
+    result.title = 'Mix result';
+
+    swatches.appendChild(target);
+    swatches.appendChild(arrow);
+    swatches.appendChild(result);
+
+    const info = document.createElement('div');
+    info.className = 'saved-mix-info';
+    info.textContent = mix.parts.map((p) =>
+      mix.parts.length > 1 ? `${p.name} ×${p.ratio}` : p.name
+    ).join(' + ');
+
+    const del = document.createElement('button');
+    del.className = 'saved-mix-delete';
+    del.textContent = '×';
+    del.addEventListener('click', () => {
+      activePalette.savedMixes = activePalette.savedMixes.filter((m) => m.id !== mix.id);
+      savePalettes();
+      renderSavedMixes();
+    });
+
+    row.appendChild(swatches);
+    row.appendChild(info);
+    row.appendChild(del);
+    mixSavedList.appendChild(row);
   });
 }
 

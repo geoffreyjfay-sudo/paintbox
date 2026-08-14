@@ -10,7 +10,7 @@
 
   <header>
     <div class="header-left">
-      <button class="back-btn hidden" id="back-btn">&#8592; Palettes</button>
+      <button class="back-btn hidden" id="back-btn">&#8592; Back</button>
       <div>
         <h1>Paintbox</h1>
         <p class="subtitle" id="header-subtitle">Your watercolour palettes</p>
@@ -57,10 +57,62 @@
           <button class="col-btn selected" data-cols="8">8</button>
           <button class="col-btn" data-cols="12">12</button>
         </div>
-        <button class="add-colours-btn" id="add-colours-btn">+ Add colours</button>
+        <div class="palette-view-actions">
+          <button class="mix-btn" id="mix-btn">Mix colours</button>
+          <button class="add-colours-btn" id="add-colours-btn">+ Add colours</button>
+        </div>
       </div>
       <div class="palette-box">
         <div class="palette-view-grid" id="palette-view-grid"></div>
+      </div>
+    </section>
+
+    <!-- Mix: eyedropper + suggestions -->
+    <section id="mix-section" class="hidden">
+      <div class="mix-layout">
+
+        <div class="mix-photo-panel">
+          <div class="mix-upload-area" id="mix-upload-area">
+            <input type="file" id="mix-file-input" accept="image/*" hidden />
+            <div class="upload-prompt">
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p>Upload a reference photo</p>
+              <span>Click or drag an image here</span>
+            </div>
+          </div>
+          <div class="mix-canvas-wrapper hidden" id="mix-canvas-wrapper">
+            <p class="instruction">Click anywhere on the photo to sample a colour</p>
+            <canvas id="mix-canvas"></canvas>
+            <button class="change-photo-btn" id="change-photo-btn">Change photo</button>
+          </div>
+        </div>
+
+        <div class="mix-sidebar">
+
+          <!-- Sampled colour -->
+          <div class="mix-panel" id="mix-sampled-panel">
+            <div class="mix-sampled-preview" id="mix-sampled-preview"></div>
+            <p class="mix-prompt" id="mix-prompt">Sample a colour from your photo</p>
+          </div>
+
+          <!-- Suggestion -->
+          <div class="mix-panel mix-suggestion-panel hidden" id="mix-suggestion-panel">
+            <div class="suggestion-label">Suggested mix</div>
+            <div class="suggestion-preview" id="suggestion-preview"></div>
+            <div class="suggestion-parts" id="suggestion-parts"></div>
+            <div class="suggestion-delta" id="suggestion-delta"></div>
+            <button class="save-mix-btn" id="save-mix-btn">&#9825; Save mix</button>
+          </div>
+
+          <!-- Saved mixes -->
+          <div class="mix-panel mix-saved-panel" id="mix-saved-panel">
+            <div class="mix-saved-header">Saved mixes</div>
+            <div class="mix-saved-list" id="mix-saved-list">
+              <p class="mix-saved-empty">No saved mixes yet</p>
+            </div>
+          </div>
+
+        </div>
       </div>
     </section>
 
@@ -76,7 +128,7 @@
       </div>
     </section>
 
-    <!-- Sample colours from photo -->
+    <!-- Sample colours from swatch photo -->
     <section id="sample-section" class="hidden">
       <div class="sample-layout">
 
@@ -110,6 +162,7 @@
 
   <div class="toast hidden" id="toast"></div>
 
+  <script src="colour.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

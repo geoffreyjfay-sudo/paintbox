@@ -397,6 +397,28 @@ main {
   color: white;
 }
 
+.palette-view-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.mix-btn {
+  padding: 7px 16px;
+  background: #6b5b8a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.mix-btn:hover {
+  background: #5a4a78;
+}
+
 .add-colours-btn {
   padding: 7px 16px;
   background: var(--accent);
@@ -412,6 +434,248 @@ main {
 
 .add-colours-btn:hover {
   background: var(--accent-hover);
+}
+
+/* ── Mix section ────────────────────────────────────────────────────────────── */
+
+.mix-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.mix-photo-panel {
+  min-width: 0;
+}
+
+.mix-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  padding: 48px 32px;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.mix-upload-area:hover,
+.mix-upload-area.drag-over {
+  border-color: #6b5b8a;
+  background: #f5f2fa;
+}
+
+.mix-canvas-wrapper {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+#mix-canvas {
+  display: block;
+  width: 100%;
+  cursor: crosshair;
+}
+
+.change-photo-btn {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  background: var(--bg);
+  border: none;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.change-photo-btn:hover {
+  color: var(--text);
+}
+
+/* Sidebar panels */
+
+.mix-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mix-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.mix-sampled-preview {
+  width: 100%;
+  height: 60px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #e8e3de;
+  margin-bottom: 8px;
+  transition: background 0.1s;
+}
+
+.mix-prompt {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+  font-family: monospace;
+}
+
+/* Suggestion panel */
+
+.suggestion-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.suggestion-preview {
+  width: 100%;
+  height: 56px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.08);
+  margin-bottom: 10px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.suggestion-part-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+}
+
+.suggestion-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+
+.suggestion-delta {
+  font-size: 0.75rem;
+  margin-top: 8px;
+  margin-bottom: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.match-excellent { background: #e6f4ee; color: #276749; }
+.match-good      { background: #e8f0fb; color: #2c5fb3; }
+.match-fair      { background: #fef9e6; color: #8a6400; }
+.match-poor      { background: #fdecea; color: #9b2e2e; }
+
+.save-mix-btn {
+  width: 100%;
+  padding: 8px;
+  background: #6b5b8a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.save-mix-btn:hover {
+  background: #5a4a78;
+}
+
+/* Saved mixes */
+
+.mix-saved-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.mix-saved-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 8px 0;
+}
+
+.saved-mix-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.saved-mix-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.saved-mix-swatches {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.saved-mix-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.target-swatch {
+  outline: 2px solid var(--border);
+  outline-offset: 1px;
+}
+
+.saved-mix-arrow {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.saved-mix-info {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-mix-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.saved-mix-delete:hover {
+  color: var(--danger);
 }
 
 /* The physical palette box */

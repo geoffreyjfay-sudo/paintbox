@@ -518,12 +518,16 @@ function applyFilter(name) {
     }
 
   } else if (name === 'simplify') {
-    const levels = 4;
+    // Blur first so channel values in the same region converge before
+    // quantization — prevents channels at different step boundaries from
+    // snapping to wildly different levels and producing false colours.
+    const blurred = separableBoxBlur(d, out.width, out.height, 8);
+    const levels = 5;
     const step = 255 / (levels - 1);
-    for (let i = 0; i < d.length; i += 4) {
-      d[i]   = Math.round(Math.round(d[i]   / step) * step);
-      d[i+1] = Math.round(Math.round(d[i+1] / step) * step);
-      d[i+2] = Math.round(Math.round(d[i+2] / step) * step);
+    for (let i = 0; i < blurred.length; i += 4) {
+      d[i]   = Math.round(Math.round(blurred[i]   / step) * step);
+      d[i+1] = Math.round(Math.round(blurred[i+1] / step) * step);
+      d[i+2] = Math.round(Math.round(blurred[i+2] / step) * step);
     }
 
   } else if (name === 'shadows' || name === 'midtones' || name === 'highlights') {
@@ -545,6 +549,46 @@ function applyFilter(name) {
 }
 
 function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
+
+// Two-pass (horizontal then vertical) box blur — fast O(w*h*r) instead of O(w*h*r²)
+function separableBoxBlur(data, width, height, radius) {
+  const tmp = new Float32Array(data.length);
+  const out = new Uint8ClampedArray(data.length);
+
+  // Horizontal pass
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let r = 0, g = 0, b = 0;
+      const x0 = Math.max(0, x - radius);
+      const x1 = Math.min(width - 1, x + radius);
+      const count = x1 - x0 + 1;
+      for (let sx = x0; sx <= x1; sx++) {
+        const i = (y * width + sx) * 4;
+        r += data[i]; g += data[i+1]; b += data[i+2];
+      }
+      const i = (y * width + x) * 4;
+      tmp[i] = r / count; tmp[i+1] = g / count; tmp[i+2] = b / count; tmp[i+3] = data[i+3];
+    }
+  }
+
+  // Vertical pass
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      let r = 0, g = 0, b = 0;
+      const y0 = Math.max(0, y - radius);
+      const y1 = Math.min(height - 1, y + radius);
+      const count = y1 - y0 + 1;
+      for (let sy = y0; sy <= y1; sy++) {
+        const i = (sy * width + x) * 4;
+        r += tmp[i]; g += tmp[i+1]; b += tmp[i+2];
+      }
+      const i = (y * width + x) * 4;
+      out[i] = r / count; out[i+1] = g / count; out[i+2] = b / count; out[i+3] = data[i+3];
+    }
+  }
+
+  return out;
+}
 
 // Eyedropper
 let currentSuggestion = null;

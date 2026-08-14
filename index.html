@@ -24,6 +24,10 @@
     <section id="home-section">
       <div class="home-actions">
         <button class="new-palette-btn" id="new-palette-btn">+ New palette</button>
+        <label class="import-btn" id="import-label">
+          Import palette
+          <input type="file" id="import-input" accept=".json" hidden />
+        </label>
       </div>
       <div class="palette-list" id="palette-list"></div>
       <p class="empty-state hidden" id="empty-state">No palettes yet. Create your first one.</p>

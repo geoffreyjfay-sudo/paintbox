@@ -33,6 +33,7 @@ const headerSubtitle   = document.getElementById('header-subtitle');
 const newPaletteBtn    = document.getElementById('new-palette-btn');
 const paletteListEl    = document.getElementById('palette-list');
 const emptyState       = document.getElementById('empty-state');
+const importInput      = document.getElementById('import-input');
 
 const setupTitle       = document.getElementById('setup-title');
 const copyNotice       = document.getElementById('copy-notice');
@@ -195,12 +196,18 @@ function renderHomeScreen() {
     copy.textContent = 'Copy';
     copy.addEventListener('click', (e) => { e.stopPropagation(); startCopy(p); });
 
+    const exp = document.createElement('button');
+    exp.className = 'palette-card-export';
+    exp.textContent = 'Export';
+    exp.addEventListener('click', (e) => { e.stopPropagation(); exportPalette(p); });
+
     const del = document.createElement('button');
     del.className = 'palette-card-delete';
     del.textContent = 'Delete';
     del.addEventListener('click', (e) => { e.stopPropagation(); deletePalette(p.id); });
 
     actions.appendChild(copy);
+    actions.appendChild(exp);
     actions.appendChild(del);
     meta.appendChild(actions);
 
@@ -246,6 +253,43 @@ function deletePalette(id) {
   savePalettes();
   renderHomeScreen();
 }
+
+// ── Export / Import ───────────────────────────────────────────────────────────
+
+function exportPalette(p) {
+  const json = JSON.stringify(p, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${p.name.replace(/[^a-z0-9]/gi, '_')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+importInput.addEventListener('change', () => {
+  const file = importInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const p = JSON.parse(e.target.result);
+      // Basic validation
+      if (!p.name || !Array.isArray(p.colours) || !p.maxSlots) throw new Error();
+      normaliseColours(p);
+      // Avoid duplicate ids
+      p.id = Date.now();
+      palettes.push(p);
+      savePalettes();
+      renderHomeScreen();
+      showToast(`"${p.name}" imported`);
+    } catch {
+      showToast('Invalid palette file');
+    }
+  };
+  reader.readAsText(file);
+  importInput.value = '';
+});
 
 // ── New / copy palette setup ──────────────────────────────────────────────────
 

@@ -77,6 +77,8 @@ main {
 /* ── Home screen ────────────────────────────────────────────────────────────── */
 
 .home-actions {
+  display: flex;
+  gap: 10px;
   margin-bottom: 24px;
 }
 
@@ -94,6 +96,24 @@ main {
 
 .new-palette-btn:hover {
   background: var(--accent-hover);
+}
+
+.import-btn {
+  padding: 9px 18px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  display: inline-block;
+}
+
+.import-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .palette-list {
@@ -219,6 +239,14 @@ main {
 
 .palette-card-copy:hover {
   color: var(--accent-hover);
+}
+
+.palette-card-export {
+  color: var(--text-muted);
+}
+
+.palette-card-export:hover {
+  color: var(--text);
 }
 
 .palette-card-delete {

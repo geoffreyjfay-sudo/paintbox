@@ -15,7 +15,9 @@ let pendingColour    = null;
 let copySource       = null;
 let colCount         = 8;
 let dragSrcIndex     = null;
-let referenceImgSrc  = null;  // dataURL of the reference photo (in-memory only)
+let referenceImgSrc    = null;  // dataURL of the reference photo (in-memory only)
+let originalImageData  = null;  // unmodified pixel data, used as filter source
+let activeFilter       = 'original';
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -441,7 +443,10 @@ mixFileInput.addEventListener('change', () => {
   mixFileInput.value = '';
 });
 changePhotoBtn.addEventListener('click', () => {
-  referenceImgSrc = null;
+  referenceImgSrc   = null;
+  originalImageData = null;
+  activeFilter      = 'original';
+  document.querySelectorAll('.filter-btn').forEach((b) => b.classList.toggle('active', b.dataset.filter === 'original'));
   mixCanvasWrapper.classList.add('hidden');
   mixUploadArea.classList.remove('hidden');
   mixSuggestionPanel.classList.add('hidden');
@@ -466,11 +471,80 @@ function showReferenceImage(src) {
     mixCanvas.width  = img.naturalWidth  * scale;
     mixCanvas.height = img.naturalHeight * scale;
     mixCtx.drawImage(img, 0, 0, mixCanvas.width, mixCanvas.height);
+    // Store original pixels for non-destructive filtering
+    originalImageData = mixCtx.getImageData(0, 0, mixCanvas.width, mixCanvas.height);
     mixUploadArea.classList.add('hidden');
     mixCanvasWrapper.classList.remove('hidden');
+    // Re-apply active filter (e.g. if photo was changed)
+    applyFilter(activeFilter);
   };
   img.src = src;
 }
+
+// ── Photo filters ─────────────────────────────────────────────────────────────
+
+document.querySelectorAll('.filter-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    activeFilter = btn.dataset.filter;
+    document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter(activeFilter);
+  });
+});
+
+function applyFilter(name) {
+  if (!originalImageData) return;
+  // Always start from original pixels
+  const src = originalImageData.data;
+  const out = new ImageData(
+    new Uint8ClampedArray(src),
+    originalImageData.width,
+    originalImageData.height
+  );
+  const d = out.data;
+
+  if (name === 'greyscale') {
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+      d[i] = d[i+1] = d[i+2] = v;
+    }
+
+  } else if (name === 'contrast') {
+    const factor = 1.6;
+    for (let i = 0; i < d.length; i += 4) {
+      d[i]   = clamp((d[i]   - 128) * factor + 128);
+      d[i+1] = clamp((d[i+1] - 128) * factor + 128);
+      d[i+2] = clamp((d[i+2] - 128) * factor + 128);
+    }
+
+  } else if (name === 'simplify') {
+    const levels = 4;
+    const step = 255 / (levels - 1);
+    for (let i = 0; i < d.length; i += 4) {
+      d[i]   = Math.round(Math.round(d[i]   / step) * step);
+      d[i+1] = Math.round(Math.round(d[i+1] / step) * step);
+      d[i+2] = Math.round(Math.round(d[i+2] / step) * step);
+    }
+
+  } else if (name === 'shadows' || name === 'midtones' || name === 'highlights') {
+    for (let i = 0; i < d.length; i += 4) {
+      const lum = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+      const inZone = (
+        (name === 'shadows'    && lum < 80)  ||
+        (name === 'midtones'   && lum >= 80 && lum <= 175) ||
+        (name === 'highlights' && lum > 175)
+      );
+      if (!inZone) {
+        // Desaturate and push toward mid-grey so the active zone stands out
+        d[i] = d[i+1] = d[i+2] = Math.round(lum * 0.4 + 128 * 0.6);
+      }
+    }
+  }
+
+  mixCtx.putImageData(out, 0, 0);
+}
+
+function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
 
 // Eyedropper
 let currentSuggestion = null;

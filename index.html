@@ -81,7 +81,20 @@
             </div>
           </div>
           <div class="mix-canvas-wrapper hidden" id="mix-canvas-wrapper">
-            <p class="instruction">Click anywhere on the photo to sample a colour</p>
+            <div class="filter-bar">
+              <div class="filter-group">
+                <button class="filter-btn active" data-filter="original">Original</button>
+                <button class="filter-btn" data-filter="greyscale">Values</button>
+                <button class="filter-btn" data-filter="contrast">Contrast</button>
+                <button class="filter-btn" data-filter="simplify">Simplify</button>
+              </div>
+              <div class="filter-group">
+                <span class="filter-group-label">Isolate</span>
+                <button class="filter-btn" data-filter="shadows">Shadows</button>
+                <button class="filter-btn" data-filter="midtones">Midtones</button>
+                <button class="filter-btn" data-filter="highlights">Highlights</button>
+              </div>
+            </div>
             <canvas id="mix-canvas"></canvas>
             <button class="change-photo-btn" id="change-photo-btn">Change photo</button>
           </div>

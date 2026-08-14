@@ -473,6 +473,54 @@ main {
   box-shadow: var(--shadow);
 }
 
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filter-group-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-right: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filter-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  border-color: #6b5b8a;
+  color: #6b5b8a;
+}
+
+.filter-btn.active {
+  background: #6b5b8a;
+  border-color: #6b5b8a;
+  color: white;
+}
+
 #mix-canvas {
   display: block;
   width: 100%;

@@ -358,7 +358,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   gap: 16px;
 }
 
@@ -414,16 +414,28 @@ main {
   background: var(--accent-hover);
 }
 
-.palette-view-grid {
-  display: grid;
-  gap: 10px;
+/* The physical palette box */
+.palette-box {
+  background: #3c3c3c;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 8px 32px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -2px 6px rgba(0,0,0,0.4);
 }
 
+.palette-view-grid {
+  display: grid;
+  gap: 5px;
+}
+
+/* Each cell = pan + label */
 .view-cell {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: grab;
   user-select: none;
 }
@@ -433,67 +445,77 @@ main {
 }
 
 .view-cell.dragging {
-  opacity: 0.35;
+  opacity: 0.25;
 }
 
-.view-cell.drag-over .view-swatch {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.view-cell.drag-over .view-pan {
+  outline: 2px solid #7ecfbe;
+  outline-offset: 1px;
 }
 
-.view-cell.drag-over.empty {
-  outline: 2px dashed var(--accent);
-  border-radius: var(--radius);
-}
-
-.view-swatch {
+/* The paint pan itself */
+.view-pan {
   width: 100%;
-  aspect-ratio: 1;
-  border-radius: 6px;
-  border: 1px solid rgba(0,0,0,0.08);
+  aspect-ratio: 4 / 5;
+  border-radius: 4px;
   position: relative;
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,0.45),
+    inset 0 -1px 2px rgba(255,255,255,0.08),
+    0 1px 0 rgba(255,255,255,0.05);
   transition: transform 0.1s;
 }
 
-.view-cell:not(.empty):hover .view-swatch {
+.view-cell:not(.empty):hover .view-pan {
   transform: scale(1.04);
+  z-index: 1;
 }
 
+/* Empty pan — bare porcelain/enamel look */
+.view-pan.empty-pan {
+  background: #d6cec4;
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,0.2),
+    inset 0 -1px 2px rgba(255,255,255,0.3);
+}
+
+/* Remove button */
 .view-remove-btn {
   position: absolute;
   top: -5px;
   right: -5px;
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   background: var(--danger);
   border: none;
   border-radius: 50%;
   color: white;
-  font-size: 11px;
-  line-height: 17px;
+  font-size: 10px;
+  line-height: 16px;
   text-align: center;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s;
   padding: 0;
+  z-index: 2;
 }
 
 .view-cell:hover .view-remove-btn {
   opacity: 1;
 }
 
+/* Colour name below pan */
 .view-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.55);
   text-align: center;
-  line-height: 1.3;
+  line-height: 1.25;
+  min-height: 2em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   word-break: break-word;
-  width: 100%;
-}
-
-.view-cell.empty .view-swatch {
-  background: var(--bg);
-  border: 1px dashed var(--border);
 }
 
 /* ── Upload ─────────────────────────────────────────────────────────────────── */

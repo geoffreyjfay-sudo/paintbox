@@ -1,8 +1,10 @@
 // ── Storage schema ────────────────────────────────────────────────────────────
 //
 //  paintbox_palettes: [
-//    { id, name, maxSlots, colours: [{ id, name, hex, r, g, b }] }
+//    { id, name, maxSlots, colours: Array(maxSlots) of { id, name, hex, r, g, b } | null }
 //  ]
+//
+//  colours is always exactly maxSlots long; null = empty slot.
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -11,8 +13,8 @@ let activePalette = null;
 let selectedSize  = 24;
 let pendingColour = null;
 let copySource    = null;
-let colCount      = 8;   // columns in palette view
-let dragSrcIndex  = null; // index of swatch being dragged
+let colCount      = 8;
+let dragSrcIndex  = null;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -80,7 +82,6 @@ function showSection(id) {
 backBtn.addEventListener('click', () => {
   const current = SECTIONS.find((s) => !document.getElementById(s).classList.contains('hidden'));
   if (current === 'upload-section' || current === 'sample-section') {
-    // Return to palette view if we have an active palette, else home
     if (activePalette) {
       renderPaletteView();
       showSection('palette-view-section');
@@ -95,9 +96,26 @@ backBtn.addEventListener('click', () => {
 function goHome() {
   activePalette = null;
   pendingColour = null;
-  copySource = null;
+  copySource    = null;
   renderHomeScreen();
   showSection('home-section');
+}
+
+// ── Colours array helpers ─────────────────────────────────────────────────────
+
+// Ensure colours is always exactly maxSlots long with nulls for empty slots
+function normaliseColours(p) {
+  const arr = Array.isArray(p.colours) ? p.colours : [];
+  const fixed = Array.from({ length: p.maxSlots }, (_, i) => arr[i] ?? null);
+  p.colours = fixed;
+}
+
+function filledCount(p) {
+  return p.colours.filter(Boolean).length;
+}
+
+function firstEmptyIndex(p) {
+  return p.colours.findIndex((c) => c === null);
 }
 
 // ── Home screen ───────────────────────────────────────────────────────────────
@@ -111,7 +129,7 @@ function renderHomeScreen() {
     card.className = 'palette-card';
     card.addEventListener('click', () => openPalette(p.id));
 
-    // Mini swatch preview — up to 16 slots
+    // Mini swatch preview (up to 16 slots)
     const swatchGrid = document.createElement('div');
     swatchGrid.className = 'palette-card-swatches';
     const previewCount = Math.min(p.maxSlots, 16);
@@ -142,10 +160,10 @@ function renderHomeScreen() {
     nameRow.appendChild(nameEl);
     nameRow.appendChild(editBtn);
 
-    // Meta row
+    // Meta
     const meta = document.createElement('div');
     meta.className = 'palette-card-meta';
-    meta.innerHTML = `<span>${p.colours.length} / ${p.maxSlots} colours</span>`;
+    meta.innerHTML = `<span>${filledCount(p)} / ${p.maxSlots} colours</span>`;
 
     const actions = document.createElement('div');
     actions.className = 'palette-card-actions';
@@ -216,10 +234,11 @@ function openSetup({ source = null } = {}) {
 
   if (source) {
     setupTitle.textContent = 'Copy palette';
-    copyNotice.textContent = `Copying ${source.colours.length} colour${source.colours.length !== 1 ? 's' : ''} from "${source.name}"`;
+    const n = filledCount(source);
+    copyNotice.textContent = `Copying ${n} colour${n !== 1 ? 's' : ''} from "${source.name}"`;
     copyNotice.classList.remove('hidden');
     paletteNameInput.value = `${source.name} (copy)`;
-    const minSize = source.colours.length;
+    const minSize = n;
     const nextSize = SIZE_OPTIONS.find((s) => s > source.maxSlots && s >= minSize)
       || SIZE_OPTIONS.find((s) => s >= minSize)
       || source.maxSlots;
@@ -233,7 +252,7 @@ function openSetup({ source = null } = {}) {
 
   sizeBtns.forEach((btn) => {
     const size = Number(btn.dataset.size);
-    btn.disabled = source ? size < source.colours.length : false;
+    btn.disabled = source ? size < filledCount(source) : false;
     btn.classList.toggle('selected', size === selectedSize);
   });
 
@@ -242,7 +261,6 @@ function openSetup({ source = null } = {}) {
 }
 
 newPaletteBtn.addEventListener('click', () => openSetup());
-
 function startCopy(source) { openSetup({ source }); }
 
 paletteNameInput.addEventListener('input', () => {
@@ -261,9 +279,16 @@ createBtn.addEventListener('click', () => {
   const name = paletteNameInput.value.trim();
   if (!name) return;
 
-  const seedColours = copySource
-    ? copySource.colours.map((c) => ({ ...c, id: Date.now() + Math.random() }))
-    : [];
+  // Seed from source: copy positions (including gaps), pad/trim to new size
+  let seedColours;
+  if (copySource) {
+    seedColours = Array.from({ length: selectedSize }, (_, i) => {
+      const c = copySource.colours[i];
+      return c ? { ...c, id: Date.now() + Math.random() } : null;
+    });
+  } else {
+    seedColours = Array(selectedSize).fill(null);
+  }
 
   activePalette = { id: Date.now(), name, maxSlots: selectedSize, colours: seedColours };
   palettes.push(activePalette);
@@ -273,7 +298,7 @@ createBtn.addEventListener('click', () => {
   showSection('upload-section');
 });
 
-// ── Palette view (arrange) ────────────────────────────────────────────────────
+// ── Palette view ──────────────────────────────────────────────────────────────
 
 colBtns.forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -290,21 +315,16 @@ function renderPaletteView() {
   paletteViewGrid.innerHTML = '';
   paletteViewGrid.style.gridTemplateColumns = `repeat(${colCount}, 1fr)`;
 
-  const { colours, maxSlots } = activePalette;
-
-  for (let i = 0; i < maxSlots; i++) {
-    const colour = colours[i];
+  activePalette.colours.forEach((colour, i) => {
     const cell = document.createElement('div');
     cell.className = 'view-cell' + (colour ? '' : ' empty');
     cell.dataset.index = i;
 
+    const pan = document.createElement('div');
+    pan.className = 'view-pan' + (colour ? '' : ' empty-pan');
+    if (colour) pan.style.background = colour.hex;
+
     if (colour) {
-      cell.draggable = true;
-
-      const swatch = document.createElement('div');
-      swatch.className = 'view-swatch';
-      swatch.style.background = colour.hex;
-
       // Remove button
       const removeBtn = document.createElement('button');
       removeBtn.className = 'view-remove-btn';
@@ -312,20 +332,14 @@ function renderPaletteView() {
       removeBtn.title = `Remove ${colour.name}`;
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        activePalette.colours.splice(i, 1);
+        activePalette.colours[i] = null;
         savePalettes();
         renderPaletteView();
       });
-      swatch.appendChild(removeBtn);
+      pan.appendChild(removeBtn);
 
-      const label = document.createElement('div');
-      label.className = 'view-label';
-      label.textContent = colour.name;
-
-      cell.appendChild(swatch);
-      cell.appendChild(label);
-
-      // Drag and drop
+      // Drag
+      cell.draggable = true;
       cell.addEventListener('dragstart', (e) => {
         dragSrcIndex = i;
         e.dataTransfer.effectAllowed = 'move';
@@ -337,32 +351,36 @@ function renderPaletteView() {
       });
     }
 
-    // Drop targets on all filled cells and empty slots
+    // Drop target on every cell (filled or empty)
     cell.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       document.querySelectorAll('.view-cell').forEach((c) => c.classList.remove('drag-over'));
       cell.classList.add('drag-over');
     });
-
     cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
-
     cell.addEventListener('drop', (e) => {
       e.preventDefault();
       cell.classList.remove('drag-over');
       const destIndex = Number(cell.dataset.index);
       if (dragSrcIndex === null || dragSrcIndex === destIndex) return;
-
-      // Move colour from src to dest position
-      const moved = activePalette.colours.splice(dragSrcIndex, 1)[0];
-      activePalette.colours.splice(destIndex, 0, moved);
+      // Swap positions (preserves gaps)
+      const temp = activePalette.colours[dragSrcIndex];
+      activePalette.colours[dragSrcIndex] = activePalette.colours[destIndex];
+      activePalette.colours[destIndex] = temp;
       dragSrcIndex = null;
       savePalettes();
       renderPaletteView();
     });
 
+    const label = document.createElement('div');
+    label.className = 'view-label';
+    label.textContent = colour ? colour.name : '';
+
+    cell.appendChild(pan);
+    cell.appendChild(label);
     paletteViewGrid.appendChild(cell);
-  }
+  });
 }
 
 // ── Upload ────────────────────────────────────────────────────────────────────
@@ -403,7 +421,7 @@ function loadImage(file) {
 // ── Colour sampling ───────────────────────────────────────────────────────────
 
 canvas.addEventListener('click', (e) => {
-  if (activePalette.colours.length >= activePalette.maxSlots) {
+  if (firstEmptyIndex(activePalette) === -1) {
     showToast(`Palette full (${activePalette.maxSlots} colours)`);
     return;
   }
@@ -444,7 +462,8 @@ function updateAddBtn() {
 
 function addToPalette() {
   if (!pendingColour || colourNameInput.value.trim() === '') return;
-  if (activePalette.colours.length >= activePalette.maxSlots) {
+  const slot = firstEmptyIndex(activePalette);
+  if (slot === -1) {
     showToast(`Palette full (${activePalette.maxSlots} colours)`);
     return;
   }
@@ -452,7 +471,7 @@ function addToPalette() {
     id: Date.now(), name: colourNameInput.value.trim(),
     hex: pendingColour.hex, r: pendingColour.r, g: pendingColour.g, b: pendingColour.b,
   };
-  activePalette.colours.push(entry);
+  activePalette.colours[slot] = entry;
   pendingColour = null;
   resetColourPicker();
   renderSamplePaletteGrid();
@@ -468,14 +487,14 @@ function resetColourPicker() {
   updateAddBtn();
 }
 
-// Mini palette grid in the sample sidebar
 function renderSamplePaletteGrid() {
   paletteGrid.innerHTML = '';
   const { colours, maxSlots, name } = activePalette;
   paletteTitle.textContent = name;
-  paletteCount.textContent = `${colours.length} / ${maxSlots}`;
+  paletteCount.textContent = `${filledCount(activePalette)} / ${maxSlots}`;
 
   colours.forEach((entry) => {
+    if (!entry) return;
     const swatch = document.createElement('div');
     swatch.className = 'palette-swatch';
     swatch.style.background = entry.hex;
@@ -489,7 +508,8 @@ function renderSamplePaletteGrid() {
     removeBtn.textContent = '×';
     removeBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      activePalette.colours = activePalette.colours.filter((c) => c.id !== entry.id);
+      const idx = activePalette.colours.findIndex((c) => c && c.id === entry.id);
+      if (idx !== -1) activePalette.colours[idx] = null;
       renderSamplePaletteGrid();
       savePalettes();
     });
@@ -499,7 +519,7 @@ function renderSamplePaletteGrid() {
     paletteGrid.appendChild(swatch);
   });
 
-  doneBtn.classList.toggle('hidden', colours.length === 0);
+  doneBtn.classList.toggle('hidden', filledCount(activePalette) === 0);
 }
 
 doneBtn.addEventListener('click', () => {
@@ -520,14 +540,18 @@ function loadPalettes() {
     if (old) {
       const colours = JSON.parse(old);
       if (Array.isArray(colours) && colours.length) {
-        const migrated = [{ id: Date.now(), name: 'My Palette', maxSlots: 24, colours }];
+        const p = { id: Date.now(), name: 'My Palette', maxSlots: 24, colours };
+        normaliseColours(p);
+        const migrated = [p];
         localStorage.setItem('paintbox_palettes', JSON.stringify(migrated));
         localStorage.removeItem('paintbox_palette');
         return migrated;
       }
       localStorage.removeItem('paintbox_palette');
     }
-    return JSON.parse(localStorage.getItem('paintbox_palettes')) || [];
+    const stored = JSON.parse(localStorage.getItem('paintbox_palettes')) || [];
+    stored.forEach(normaliseColours);
+    return stored;
   } catch { return []; }
 }
 
